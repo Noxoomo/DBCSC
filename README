@@ -1,12 +1,12 @@
 ----
-Run parammetrs: java -jar jarFile db, where path — db - database filename
+Run parammetrs: java -jar jarFile db, where db - database filename
 ----
 
-API 
-insert key -> value //insert, if key exists -> error
+API (console)
+insert key->value //insert, if key exists -> error
 get key // get key, if no key found -> error
 remove key //delete key, if succesufull -> report, if can't delete -> can't delete message, if no key found -> no key found error
-update key -> value //update value of the key or insert it, if no key exists
+update key->value //update value of the key or insert it, if no key exists
 quit // quit
 flush //flush data
 ----
@@ -17,7 +17,7 @@ key -> value
 key -> value
 ----
 Commit log:
-update\delete key -> value
+update\delete key->value
 …
 
 
