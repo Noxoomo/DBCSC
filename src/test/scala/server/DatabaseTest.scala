@@ -18,6 +18,7 @@ class DatabaseTest extends FlatSpec with Matchers {
   "Database" should "start with empty file" in {
     clean(filename)
     val db = new Database(filename)
+    db.start()
     db.add("aaa", "bbb")
     db.get("aaa") should be("bbb")
     db.add("someone", "33333")
@@ -30,10 +31,12 @@ class DatabaseTest extends FlatSpec with Matchers {
     }
   }
 
+
   "Database" should "implement CRUD" in {
     clean(filename)
     createDatabase()
     val db = new Database(filename)
+    db.start()
     db.get("key") should be("value")
     db.get("ppp") should be("lll 111")
     db.update("key1", "sss")
@@ -41,6 +44,9 @@ class DatabaseTest extends FlatSpec with Matchers {
     db.remove("ppp")
     intercept[NoKeyFoundException] {
       db.get("ppp")
+    }
+    intercept[NoKeyFoundException] {
+      db.remove("keysssss")
     }
   }
 
@@ -50,6 +56,7 @@ class DatabaseTest extends FlatSpec with Matchers {
     createDatabase()
     createCommitLog()
     val db = new Database(filename)
+    db.start()
     db.get("key") should be("value")
     db.get("key2") should be("value2")
     db.get("key1") should be("value1")

@@ -82,7 +82,7 @@ class Database(filename: String) {
     if (db.contains(key)) {
       removeCommit(key)
       db.remove(key)
-    }
+    } else throw new NoKeyFoundException
   }
 
 
