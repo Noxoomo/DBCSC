@@ -42,8 +42,10 @@ class DatabaseTest extends FlatSpec with Matchers {
     db.update("key1", "sss")
     db.get("key1") should be("sss")
     db.remove("ppp")
+
     intercept[NoKeyFoundException] {
       db.get("ppp")
+      db.update("strange key", "value")
     }
     intercept[NoKeyFoundException] {
       db.remove("keysssss")
@@ -60,6 +62,7 @@ class DatabaseTest extends FlatSpec with Matchers {
     db.get("key") should be("value")
     db.get("key2") should be("value2")
     db.get("key1") should be("value1")
+
     intercept[NoKeyFoundException] {
       db.get("aaa")
     }

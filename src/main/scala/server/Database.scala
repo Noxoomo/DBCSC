@@ -72,6 +72,7 @@ class Database(filename: String) {
 
   def update(key: String, value: String) {
     if (!started) throw new DatabaseNotStartedException()
+    if (!db.contains(key)) throw new NoKeyFoundException
     updateCommit(key, value)
     db.update(key, value)
 
