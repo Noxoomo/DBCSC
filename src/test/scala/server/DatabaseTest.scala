@@ -1,14 +1,14 @@
 package server
 
 import org.scalatest._
-import java.io.{PrintWriter, File}
+import java.io.File
 import server.Exception.NoKeyFoundException
 import scala.util.Random
+import java.nio.file.{Paths, Files}
 
 
 class DatabaseTest extends FlatSpec with Matchers {
   val rand = new Random()
-  val filename = "/Users/Vasily/Dropbox/IdeaProjects/DBCSC/src/test/resources/" + "Database" + rand.nextInt().toString
 
 
   def clean(filename: String) {
@@ -18,57 +18,55 @@ class DatabaseTest extends FlatSpec with Matchers {
     if (db.exists()) db.delete()
   }
 
-  "Database" should "start with empty file" in {
+  def removeFolder(path: String): Boolean = {
+    if (Files.exists(Paths.get(path))) {
+      val dbRoot = new File(path)
+      for (file <- dbRoot.listFiles()) {
+        file.delete()
+      }
+      dbRoot.delete()
+    }
+    true
+  }
+
+  "Database" should "create database and implement CRUD" in {
     //clean(filename)
-    val db = new Database(filename)
-    db.insert("aaa", "bbb")
-    db.get("aaa") should be("bbb")
-    db.insert("someone", "33333")
-    db.update("aaa", "ccc")
-    db.get("aaa") should be("ccc")
-    db.get("someone") should be("33333")
-    db.remove("aaa")
+    val path = "src/test/resources/test02"
+    removeFolder(path)
+    val db = new Database(path)
+    db.insert("key1", "value1")
+    db.get("key1") should be("value1")
+    db.insert("key2", "value2")
+    db.update("key1", "update-value1")
+    db.get("key1") should be("update-value1")
+    db.get("key2") should be("value2")
+    db.remove("key2")
+    db.remove("key1")
     intercept[NoKeyFoundException] {
-      db.get("aaa")
+      db.get("key2")
+    }
+    intercept[NoKeyFoundException] {
+      db.get("key1")
     }
   }
 
 
-  ignore should "implement CRUD" in {
+  "Database" should "implement read from existing source" in {
     //clean(filename)
     //createDatabase()
-    val db = new Database(filename)
+    val path = "src/test/resources/test01"
+    val db = new Database(path)
     db.get("key") should be("value")
-    db.get("ppp") should be("lll 111")
-    db.update("key1", "sss")
-    db.get("key1") should be("sss")
-    db.remove("ppp")
-
+    db.get("key1") should be("value1")
+    db.get("key2") should be("value2")
+    db.get("key3") should be("value3")
+    db.get("key4") should be("value4")
     intercept[NoKeyFoundException] {
-      db.get("ppp")
+      db.get("nokey")
+    }
+    intercept[NoKeyFoundException] {
       db.update("strange key", "value")
     }
-    intercept[NoKeyFoundException] {
-      db.remove("keysssss")
-    }
   }
-
-
-  def createDatabase() {
-    val base = "key->value\nkey1->aaa\naaa->ddd\nd->k\nppp->lll 111\nsomeone-> +77777777"
-    val db = new PrintWriter(new File(filename))
-    db.append(base)
-    db.flush()
-    db.close()
-  }
-
-  def createCommitLog() {
-    val log = "update key1->value1\nupdate key2->value2\nupdate test->tset\nremove aaa"
-    val commitLog = new java.io.PrintWriter(new File(filename + ".commit"))
-    commitLog.append(log)
-    commitLog.flush()
-    commitLog.close()
-  }
-
 
 }

@@ -2,22 +2,25 @@ package server
 
 import org.scalatest._
 import java.io.File
+import java.nio.file.{Files, Paths}
 
 
 class ServerTest extends FlatSpec with Matchers {
-  val filename = "/Users/Vasily/Dropbox/IdeaProjects/DBCSC/src/test/resources/" + "data"
+  val filename = "src/test/resources/" + "serverTest"
 
-  def clean(filename: String) {
-    val commit = new File(filename + ".commit")
-    if (commit.exists()) commit.delete()
-    val db = new File(filename)
-    if (db.exists()) db.delete()
+  def removeFolder(path: String): Boolean = {
+    if (Files.exists(Paths.get(path))) {
+      val dbRoot = new File(path)
+      for (file <- dbRoot.listFiles()) {
+        file.delete()
+      }
+      dbRoot.delete()
+    }
+    true
   }
 
   "Server" should "start database and process queries" in {
-    //clean rubbish
-    clean(filename)
-
+    removeFolder(filename)
     try {
       val server = new Server(filename)
       server.processLine("insert key1->value1") should be("inserted")
@@ -27,13 +30,11 @@ class ServerTest extends FlatSpec with Matchers {
       server.processLine("get key2") should be("value2")
       server.processLine("update key1->value-1") should be("updated")
       server.processLine("get key1") should be("value-1")
-      server.processLine("flush") should be("flush done")
       server.processLine("remove key1") should be("removed")
       server.processLine("get key1") should be("No key found")
       server.processLine("insert key2->value3") should be("Error, key already exists")
-      server.processLine("get key1") should be("Error, database stopped")
     } finally {
-      clean(filename)
+      removeFolder(filename)
     }
 
   }
