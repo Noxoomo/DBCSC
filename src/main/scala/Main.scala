@@ -25,7 +25,6 @@ object Main {
         case e: RecoverCommitLogException => println("Can't recover commit log, exit")
         case e: DataBaseOpenException => println("Can't open data base")
       }
-
     }
   }
 

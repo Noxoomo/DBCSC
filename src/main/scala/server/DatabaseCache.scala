@@ -6,6 +6,7 @@ import server.Exception.NoKeyFoundException
 
 class DatabaseCache {
   private val db = new mutable.HashMap[String, String]()
+  val time = 0
 
   def get(key: String): String = {
     if (!(db contains key)) throw new NoKeyFoundException

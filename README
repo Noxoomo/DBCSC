@@ -1,5 +1,5 @@
 ----
-Run parammetrs: java -jar jarFile db, where db - database filename
+Run parammetrs: java -jar jarFile db, where db - database foldername
 ----
 
 API (console)
@@ -8,18 +8,14 @@ get key // get key, if no key found -> error
 remove key //delete key, if succesufull -> report, if can't delete -> can't delete message, if no key found -> no key found error
 update key->value //update value of the key if key exists
 quit // quit
-flush //flush data
 ----
 
 DataBase Format:
-key -> value
-…
-key -> value
+foreach key creates file with key as a name
 ----
-Commit log:
-update\delete key->value
-…
 
+Cache:
+Database all operations proceed on disk, for fast access uses cache, at the moment without control of max allowed memory
 
 
 
