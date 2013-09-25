@@ -11,7 +11,6 @@ object Main {
       val server = new Server(args(0))
       try {
         print("Starting database…")
-        server.startDatabase()
         println("started")
         var finished = false
         while (!finished) {
@@ -25,7 +24,7 @@ object Main {
       } catch {
         case e: RecoverCommitLogException => println("Can't recover commit log, exit")
         case e: DataBaseOpenException => println("Can't open data base")
-      } finally server.stop()
+      }
 
     }
   }

@@ -5,7 +5,7 @@ import java.io.File
 
 
 class ServerTest extends FlatSpec with Matchers {
-  val filename = "ServerTest.db"
+  val filename = "/Users/Vasily/Dropbox/IdeaProjects/DBCSC/src/test/resources/" + "data"
 
   def clean(filename: String) {
     val commit = new File(filename + ".commit")
@@ -20,7 +20,6 @@ class ServerTest extends FlatSpec with Matchers {
 
     try {
       val server = new Server(filename)
-      server.startDatabase()
       server.processLine("insert key1->value1") should be("inserted")
       server.processLine("get key1") should be("value1")
       server.processLine("insert key2->value2") should be("inserted")
@@ -32,7 +31,6 @@ class ServerTest extends FlatSpec with Matchers {
       server.processLine("remove key1") should be("removed")
       server.processLine("get key1") should be("No key found")
       server.processLine("insert key2->value3") should be("Error, key already exists")
-      server.stop()
       server.processLine("get key1") should be("Error, database stopped")
     } finally {
       clean(filename)

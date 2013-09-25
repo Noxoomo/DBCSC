@@ -1,146 +1,104 @@
 package server
 
+import scala.collection.mutable.HashSet
 import scala.collection.mutable.Map
 import server.Exception._
 import scala.io._
-import java.io.File
 import java.nio.file._
+import java.io._
 
 
-class Database(filename: String) {
-  private val db = Map[String, String]()
-  private val dbFileName = filename
-  private var started = false
-  private var fw: java.io.PrintWriter = null
+class Database(dbPath: String) {
+  private val dbHash = Map[String, String]()
+  private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
+  private val dbCache = new DatabaseCache();
+  private var keySet = new HashSet[String]()
+  start()
 
-
-  def add(key: String, value: String) {
-    if (!started) throw new DatabaseNotStartedException()
-    if (db.contains(key)) throw new KeyExistsException()
+  def insert(key: String, value: String) {
+    if (keySet contains key) throw new KeyExistsException()
     else {
-      updateCommit(key, value)
-      db += (key -> value)
-    }
-  }
-
-  def backup() {
-
-  }
-
-  def open() {
-    db.clear()
-    try {
-      for (line <- Source.fromFile(dbFileName).getLines()) {
-        val request = line.toString.split("->")
-        db.put(request(0), request(1))
+      try {
+        val pw = new BufferedWriter(new FileWriter(dbDir + key))
+        pw.write(value)
+        pw.flush()
+        pw.close()
+        keySet.add(key)
+      } catch {
+        case e: IOException => throw new DatabaseWriteException
       }
-    } catch {
-      case e: java.io.FileNotFoundException => println("no db found, creating new Database")
     }
+  }
+
+
+  private def start() {
+    //clear hash
+    dbHash.clear()
+    if (Files.exists(Paths.get(dbDir))) {
+      val dbRoot = new File(dbDir)
+      try {
+        for (file <- dbRoot.listFiles().filter(_.isFile)) {
+          keySet += file.getName
+        }
+      } catch {
+        case _: Throwable => println("something went wrong, check your permissions to access Database directory")
+      }
+    } else {
+      Files.createDirectory(Paths.get(dbDir))
+    }
+  }
+
+
+  def getFromFile(key: String): String = {
     try {
-      recoverCommitLog()
-      backup()
-      flush()
-      clearCommitLog()
+      var value = ""
+      for (line <- Source.fromFile(dbDir + key).getLines()) {
+        value += line
+      }
+      dbCache.insert(key, value)
+      value
     } catch {
-      case e: java.io.FileNotFoundException => println("no commit log found")
-      case e: DataBaseOpenException => throw e
+      case _: Throwable => throw new DatabaseReadException
     }
-  }
-
-  def start() {
-    if (!started) {
-      open()
-      recoverCommitLog()
-      fw = new java.io.PrintWriter(new File(dbFileName + ".commit"))
-      started = true
-    }
-  }
-
-  def stop() {
-    flush()
-    if (fw != null) fw.close()
-    clearCommitLog()
-    started = false
   }
 
   def get(key: String) = {
-    if (!started) throw new DatabaseNotStartedException()
-    val answer = db.get(key)
-    if (answer.isDefined) answer.get else throw new NoKeyFoundException()
+    if (!(keySet contains key)) throw new NoKeyFoundException()
+    if (dbCache contains key) dbCache get (key) else getFromFile(key)
   }
 
   def update(key: String, value: String) {
-    if (!started) throw new DatabaseNotStartedException()
-    if (!db.contains(key)) throw new NoKeyFoundException
-    updateCommit(key, value)
-    db.update(key, value)
+    if (!(keySet contains key)) throw new NoKeyFoundException()
+    val oldKey = new File(dbPath + key)
+    val backup = dbPath + key + "." + System.currentTimeMillis()
+    oldKey.renameTo(new File(backup))
+    try {
+      dbCache.remove(key)
+      keySet.remove(key)
+      insert(key, value)
+    } catch {
+      case e: DatabaseWriteException => {
+        removeFile(dbPath + key)
+        oldKey.renameTo(new File(dbPath + key))
+        keySet.add(key)
+      }
+    }
+  }
 
+  def removeFile(path: String) {
+    if (Files.exists(Paths.get(path)))
+      (new File(path)).delete()
   }
 
   def remove(key: String) {
-    if (!started) throw new DatabaseNotStartedException()
-    if (db.contains(key)) {
-      removeCommit(key)
-      db.remove(key)
-    } else throw new NoKeyFoundException
-  }
-
-
-  private def updateCommit(key: String, value: String) {
-    commit("update " + key + "->" + value)
-
-  }
-
-  private def removeCommit(key: String) {
-    commit("remove " + key)
-  }
-
-  private def commit(query: String) {
+    if (!(keySet contains key)) throw new NoKeyFoundException()
     try {
-      fw.println(query)
+      val keyFile = new File(dbPath + key)
+      keyFile.delete()
+      keySet.remove(key)
+      dbCache.remove(key)
     } catch {
-      case _: Throwable => throw new CommitLogWriteException
-    } finally {
-      fw.flush()
+      case e: IOException => throw new DatabaseKeyRemoveException()
     }
-  }
-
-  def flush() {
-    val pw = new java.io.PrintWriter(new File(dbFileName))
-    try {
-      for ((key: String, value: String) <- db) {
-        pw.println(key + "->" + value)
-      }
-    } catch {
-      case _: Throwable => throw new DatabaseWriteException
-    } finally {
-      pw.flush()
-      pw.close()
-    }
-
-
-  }
-
-  private def clearCommitLog() {
-    new File(dbFileName + ".commit").delete()
-  }
-
-  private def recoverCommitLog() {
-    if (Files.exists(Paths.get(dbFileName + ".commit")))
-      try {
-        for (line <- Source.fromFile(dbFileName + ".commit").getLines()) {
-          val request = line.toString.split(" ", 2)
-          request(0) match {
-            case "update" => {
-              val keyValue = request(1).split("->")
-              db.update(keyValue(0), keyValue(1))
-            }
-            case "remove" => db.remove(request(1))
-          }
-        }
-      } catch {
-        case _: Throwable => throw new RecoverCommitLogException
-      }
   }
 }

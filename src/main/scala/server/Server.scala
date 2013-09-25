@@ -1,35 +1,23 @@
 package server
 
-import server.Exception.{DataBaseOpenException, NoKeyFoundException, DatabaseNotStartedException, KeyExistsException}
+import server.Exception.{DataBaseOpenException, NoKeyFoundException, DatabaseKeyRemoveException, KeyExistsException}
 
-class Server(filename: String) {
-  val db = new Database(filename)
+class Server(dbPath: String) {
+  val db = new Database(dbPath)
 
-  def startDatabase() {
-    db.start()
-  }
-
-  def stop() {
-    db.stop()
-  }
 
   def processLine(line: String): String = {
     val request = line.split(" ", 2)
     try {
       request(0) match {
         case "quit" => {
-          db.stop()
           sys.exit(0)
-        }
-        case "flush" => {
-          db.flush()
-          "flush done"
         }
         case "insert" => {
           val query = request(1).split("->")
           if (query.length != 2) "Query syntax error"
           else {
-            db.add(query(0), query(1))
+            db.insert(query(0), query(1))
             "inserted"
           }
         }
@@ -40,7 +28,6 @@ class Server(filename: String) {
             db.update(query(0), query(1))
             "updated"
           }
-
         }
         case "remove" => {
           db.remove(request(1))
@@ -51,7 +38,7 @@ class Server(filename: String) {
       }
     } catch {
       case e: KeyExistsException => "Error, key already exists"
-      case e: DatabaseNotStartedException => "Error, database stopped"
+      case e: DatabaseKeyRemoveException => "Error, database stopped"
       case e: NoKeyFoundException => "No key found"
       case e: DataBaseOpenException => "Can't open database"
     }
