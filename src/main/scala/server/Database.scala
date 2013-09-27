@@ -1,7 +1,5 @@
 package server
 
-import scala.collection.mutable.HashSet
-import scala.collection.mutable.Map
 import server.Exception._
 import scala.io._
 import java.nio.file._
@@ -9,21 +7,22 @@ import java.io._
 
 
 class Database(dbPath: String) {
-  private val dbHash = Map[String, String]()
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
   private val dbCache = new DatabaseCache();
-  private var keySet = new HashSet[String]()
   start()
 
+  def exist(key: String): Boolean = {
+    if (dbCache.contains(key) || Files.exists(Paths.get(dbDir + key))) true else false
+  }
+
   def insert(key: String, value: String) {
-    if (keySet contains key) throw new KeyExistsException()
+    if (exist(key)) throw new KeyExistsException()
     else {
       try {
         val pw = new BufferedWriter(new FileWriter(dbDir + key))
         pw.write(value)
         pw.flush()
         pw.close()
-        keySet.add(key)
       } catch {
         case e: IOException => throw new DatabaseWriteException
       }
@@ -33,7 +32,7 @@ class Database(dbPath: String) {
 
   private def start() {
     //clear hash
-    dbHash.clear()
+    /*dbHash.clear()
     if (Files.exists(Paths.get(dbDir))) {
       val dbRoot = new File(dbDir)
       try {
@@ -45,7 +44,8 @@ class Database(dbPath: String) {
       }
     } else {
       Files.createDirectory(Paths.get(dbDir))
-    }
+    }   */
+    if (!Files.exists(Paths.get(dbDir))) Files.createDirectory(Paths.get(dbDir))
   }
 
 
@@ -63,24 +63,22 @@ class Database(dbPath: String) {
   }
 
   def get(key: String) = {
-    if (!(keySet contains key)) throw new NoKeyFoundException()
+    if (!(exist(key))) throw new NoKeyFoundException()
     if (dbCache contains key) dbCache get (key) else getFromFile(key)
   }
 
   def update(key: String, value: String) {
-    if (!(keySet contains key)) throw new NoKeyFoundException()
-    val oldKey = new File(dbPath + key)
-    val backup = dbPath + key + "." + System.currentTimeMillis()
+    if (!(exist(key))) throw new NoKeyFoundException()
+    val oldKey = new File(dbDir + key)
+    val backup = dbDir + key + "." + System.currentTimeMillis()
     oldKey.renameTo(new File(backup))
     try {
       dbCache.remove(key)
-      keySet.remove(key)
       insert(key, value)
     } catch {
       case e: DatabaseWriteException => {
-        removeFile(dbPath + key)
-        oldKey.renameTo(new File(dbPath + key))
-        keySet.add(key)
+        removeFile(dbDir + key)
+        oldKey.renameTo(new File(dbDir + key))
       }
     }
   }
@@ -91,11 +89,10 @@ class Database(dbPath: String) {
   }
 
   def remove(key: String) {
-    if (!(keySet contains key)) throw new NoKeyFoundException()
+    if (!exist(key)) throw new NoKeyFoundException()
     try {
-      val keyFile = new File(dbPath + key)
+      val keyFile = new File(dbDir + key)
       keyFile.delete()
-      keySet.remove(key)
       dbCache.remove(key)
     } catch {
       case e: IOException => throw new DatabaseKeyRemoveException()
