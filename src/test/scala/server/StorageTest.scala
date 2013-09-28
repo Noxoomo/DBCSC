@@ -5,14 +5,14 @@ import server.Exception.NoKeyFoundException
 import scala.util.Random
 
 
-class DatabaseTest extends FlatSpec with Matchers {
+class StorageTest extends FlatSpec with Matchers {
   val rand = new Random()
 
-  "Database" should "create database and implement CRUD" in {
+  "DiskStorage" should "create DiskStorage and implement CRUD" in {
     //clean(filename)
     val path = "src/test/resources/test02"
     TestUtils.removeFolder(path)
-    val db = new Database(path)
+    val db = new Storage(path)
     db.insert("key1", "value1")
     db.get("key1") should be("value1")
     db.insert("key2", "value2")
@@ -30,11 +30,11 @@ class DatabaseTest extends FlatSpec with Matchers {
   }
 
 
-  "Database" should "implement read from existing source" in {
+  "DiskStorage" should "implement read from existing source" in {
     //clean(filename)
-    //createDatabase()
+    //createDiskStorage()
     val path = "src/test/resources/test01"
-    val db = new Database(path)
+    val db = new Storage(path)
     db.get("key") should be("value")
     db.get("key1") should be("value1")
     db.get("key2") should be("value2")

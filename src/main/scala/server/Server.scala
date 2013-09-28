@@ -1,9 +1,9 @@
 package server
 
-import server.Exception.{DataBaseOpenException, NoKeyFoundException, DatabaseKeyRemoveException, KeyExistsException}
+import server.Exception.{DataBaseOpenException, NoKeyFoundException, KeyRemoveException, KeyExistsException}
 
 class Server(dbPath: String) {
-  val db = new Database(dbPath)
+  val db = new Storage(dbPath)
 
 
   def processLine(line: String): String = {
@@ -38,7 +38,7 @@ class Server(dbPath: String) {
       }
     } catch {
       case e: KeyExistsException => "Error, key already exists"
-      case e: DatabaseKeyRemoveException => "Error, database stopped"
+      case e: KeyRemoveException => "Error, database stopped"
       case e: NoKeyFoundException => "No key found"
       case e: DataBaseOpenException => "Can't open database"
     }
