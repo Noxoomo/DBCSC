@@ -8,7 +8,7 @@ import java.io._
 
 class Database(dbPath: String) {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
-  private val dbCache = new DatabaseCache();
+  private val dbCache = new DatabaseCache()
   start()
 
   def exist(key: String): Boolean = {
@@ -31,20 +31,6 @@ class Database(dbPath: String) {
 
 
   private def start() {
-    //clear hash
-    /*dbHash.clear()
-    if (Files.exists(Paths.get(dbDir))) {
-      val dbRoot = new File(dbDir)
-      try {
-        for (file <- dbRoot.listFiles().filter(_.isFile)) {
-          keySet += file.getName
-        }
-      } catch {
-        case _: Throwable => println("something went wrong, check your permissions to access Database directory")
-      }
-    } else {
-      Files.createDirectory(Paths.get(dbDir))
-    }   */
     if (!Files.exists(Paths.get(dbDir))) Files.createDirectory(Paths.get(dbDir))
   }
 
@@ -63,18 +49,19 @@ class Database(dbPath: String) {
   }
 
   def get(key: String) = {
-    if (!(exist(key))) throw new NoKeyFoundException()
-    if (dbCache contains key) dbCache get (key) else getFromFile(key)
+    if (!exist(key)) throw new NoKeyFoundException()
+    if (dbCache contains key) dbCache get key else getFromFile(key)
   }
 
   def update(key: String, value: String) {
-    if (!(exist(key))) throw new NoKeyFoundException()
+    if (!exist(key)) throw new NoKeyFoundException()
     val oldKey = new File(dbDir + key)
-    val backup = dbDir + key + "." + System.currentTimeMillis()
-    oldKey.renameTo(new File(backup))
+    val backup = new File(dbDir + key + "." + System.currentTimeMillis())
+    oldKey.renameTo(backup)
     try {
       dbCache.remove(key)
       insert(key, value)
+      backup.delete()
     } catch {
       case e: DatabaseWriteException => {
         removeFile(dbDir + key)

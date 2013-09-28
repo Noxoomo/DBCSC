@@ -1,5 +1,5 @@
 ----
-Run parammetrs: java -jar jarFile db, where db - database foldername
+Run: java -jar jarFile db, where db - database folderName
 ----
 
 API (console)
