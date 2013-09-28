@@ -1,5 +1,5 @@
 import server.Server
-import server.Exception.{DataBaseOpenException, RecoverCommitLogException}
+import server.Exception.{DataBaseOpenException, KeyReadException}
 
 
 object Main {
@@ -22,7 +22,7 @@ object Main {
           }
         }
       } catch {
-        case e: RecoverCommitLogException => println("Can't recover commit log, exit")
+        case e: KeyReadException => println("Can't recover commit log, exit")
         case e: DataBaseOpenException => println("Can't open data base")
       }
     }

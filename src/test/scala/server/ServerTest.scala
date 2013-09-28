@@ -1,14 +1,14 @@
 package server
 
 import org.scalatest._
-
+import server.Utils.FileUtils._
 
 class ServerTest extends FlatSpec with Matchers {
   val filename = "src/test/resources/" + "serverTest"
 
 
   "Server" should "start database and process queries" in {
-    TestUtils.removeFolder(filename)
+    removeFolder(filename)
     try {
       val server = new Server(filename)
       server.processLine("insert key1->value1") should be("inserted")
@@ -22,7 +22,7 @@ class ServerTest extends FlatSpec with Matchers {
       server.processLine("get key1") should be("No key found")
       server.processLine("insert key2->value3") should be("Error, key already exists")
     } finally {
-      TestUtils.removeFolder(filename)
+      removeFolder(filename)
     }
 
   }
