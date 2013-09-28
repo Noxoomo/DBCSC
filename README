@@ -11,7 +11,12 @@ quit // quit
 ----
 
 DataBase Format:
-foreach key creates file with key as a name
+DB:
+file from blocks: blocksize T/F key value
+blocksize: Int
+T/F — char (removed this file or not)
+Index:
+key — offset
 ----
 
 Cache:
