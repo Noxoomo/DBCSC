@@ -53,10 +53,7 @@ class MemoryCache {
   }
 
   def update(key: String, value: String) {
-    approximateMemory += memory(key, db.get(key).get._1)
-    approximateMemory -= memory(key, value)
-    db.put(key, (value, time))
-    time += 1
+    remove(key)
     checkMemoryUsage()
   }
 
@@ -68,8 +65,10 @@ class MemoryCache {
   }
 
   def remove(key: String) {
-    approximateMemory -= (memory(key, db.get(key).get._1))
-    db.remove(key)
+    if (db.contains(key)) {
+      approximateMemory -= (memory(key, db.get(key).get._1))
+      db.remove(key)
+    }
   }
 
 
