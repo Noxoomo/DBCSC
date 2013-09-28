@@ -1,26 +1,14 @@
 package server
 
 import org.scalatest._
-import java.io.File
-import java.nio.file.{Files, Paths}
 
 
 class ServerTest extends FlatSpec with Matchers {
   val filename = "src/test/resources/" + "serverTest"
 
-  def removeFolder(path: String): Boolean = {
-    if (Files.exists(Paths.get(path))) {
-      val dbRoot = new File(path)
-      for (file <- dbRoot.listFiles()) {
-        file.delete()
-      }
-      dbRoot.delete()
-    }
-    true
-  }
 
   "Server" should "start database and process queries" in {
-    removeFolder(filename)
+    TestUtils.removeFolder(filename)
     try {
       val server = new Server(filename)
       server.processLine("insert key1->value1") should be("inserted")
@@ -34,7 +22,7 @@ class ServerTest extends FlatSpec with Matchers {
       server.processLine("get key1") should be("No key found")
       server.processLine("insert key2->value3") should be("Error, key already exists")
     } finally {
-      removeFolder(filename)
+      TestUtils.removeFolder(filename)
     }
 
   }
