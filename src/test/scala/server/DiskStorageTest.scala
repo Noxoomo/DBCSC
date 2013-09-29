@@ -37,8 +37,10 @@ class DiskStorageTest extends FlatSpec with Matchers {
     val keyPre = "key-"
     val valuePre = "some value "
     //val testLimit = 1000000
-    val testLimit = 1000000
+    val testLimit = 10000000
     removeFolder(path)
+    val startTime = System.currentTimeMillis()
+
     val db = new DiskStorage(path)
     for (i <- 0 to testLimit) {
       db.insert(keyPre + i.toString, valuePre + i.toString)
@@ -46,6 +48,8 @@ class DiskStorageTest extends FlatSpec with Matchers {
       db.get(keyPre + id) should be(valuePre + id)
     }
     db.close()
+    val endTime = System.currentTimeMillis()
+    print(endTime - startTime)
   }
 
   "DiskStorage" should "work after clean" in {

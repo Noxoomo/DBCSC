@@ -1,6 +1,5 @@
 package server.OnDiskStorage
 
-import java.io.{FileWriter, BufferedWriter}
 
 /**
  * User: Vasily
@@ -8,7 +7,7 @@ import java.io.{FileWriter, BufferedWriter}
  * Time: 21:01
  */
 class CommitLog {
-  val writer = new BufferedWriter(new FileWriter("commits"))
+  //val writer = new BufferedWriter(new FileWriter("commits"))
 
   //val writer = new BufferedWriter(new PrintWriter(System.err))
   def insert(key: String, value: String, pos: Long) = {
@@ -25,12 +24,12 @@ class CommitLog {
 
   private def write(str: String) {
     val log = " " + str
-    writer.write(log.length + log)
-    writer.flush()
+    //writer.write(log.length + log)
+    //writer.flush()
   }
 
   def close() {
-    writer.close()
+    //writer.close()
     //removeFile("commits")
   }
 
