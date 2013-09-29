@@ -1,7 +1,7 @@
 package server.OnDiskStorage
 
 import java.io.RandomAccessFile
-import server.Exception.ReindexException
+import server.Exception.DatabaseCleanException
 import server.Utils.FileUtils._
 
 
@@ -23,21 +23,26 @@ class DiskStorageMaintains(database: String) {
    */
   def clean() {
     val dbFile = new RandomAccessFile(database, "r")
-    val writer = new RandomAccessFile(database + ".new", "w")
+    val writer = new RandomAccessFile(database + ".new", "rw")
 
     var bytesRead = 0L
     try {
-      while (bytesRead < dbFile.length()) {
+      while (dbFile.getFilePointer < dbFile.length()) {
+        val pos = dbFile.getFilePointer
         val blockSize = dbFile.readInt()
         val removed = dbFile.readBoolean()
         if (!removed) {
           val bytes = new Array[Byte](blockSize)
           bytesRead += dbFile.read(bytes)
+          writer.writeInt(blockSize)
+          writer.writeBoolean(false)
           writer.write(bytes)
-        }
+        } else dbFile.seek(dbFile.getFilePointer + blockSize)
       }
+
+
     } catch {
-      case e: Throwable => throw new ReindexException()
+      case e: Throwable => throw new DatabaseCleanException()
     } finally {
       dbFile.close()
       writer.close()

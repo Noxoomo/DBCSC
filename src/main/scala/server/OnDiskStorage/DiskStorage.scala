@@ -21,7 +21,7 @@ class DiskStorage(dbPath: String) extends Database {
   private val cleanLock = dbDir + "clean.lck"
   private val keyIndexFilename = dbDir + "index"
   private val dbFilename = dbDir + "db"
-  private val maintainer = new DiskStorageMaintains(dbDir)
+  private val maintainer = new DiskStorageMaintains(dbFilename)
   //first run, need to restore or only clean keys?
   if (!pathExists(dbDir)) createFolder(dbDir)
   else if (pathExists(storageLock)) {

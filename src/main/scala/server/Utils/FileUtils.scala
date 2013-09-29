@@ -25,7 +25,8 @@ object FileUtils {
   }
 
   def touch(filename: String) {
-    new File(filename).createNewFile()
+    if (!pathExists(filename))
+      new File(filename).createNewFile()
   }
 
   def pathExists(filename: String): Boolean = {
@@ -40,5 +41,7 @@ object FileUtils {
     new File(from).renameTo(new File(to))
   }
 
-
+  def copyFile(from: String, to: String) {
+    Files.copy(Paths.get(from), Paths.get(to))
+  }
 }

@@ -48,6 +48,23 @@ class DiskStorageTest extends FlatSpec with Matchers {
     db.close()
   }
 
+  "DiskStorage" should "work after clean" in {
+    val path = "src/test/resources/testDiskStorageClean/"
+    removeFile(path + "db")
+    removeFile(path + "index")
+    touch(path + "clean.lck")
+    copyFile(path + "db.test", path + "db")
+    copyFile(path + "index.test", path + "index")
+    val db = new DiskStorage(path)
+    intercept[NoKeyFoundException] {
+      db.get("key1")
+    }
+    db.get("key2") should be("value-2")
+    db.get("key3") should be("key-3")
+    db.get("key4") should be("value4")
+    db.close()
+  }
+
 
   "DiskStorage" should "reindex in existing Database" in {
     val path = "src/test/resources/testExistDatabase"
