@@ -1,8 +1,8 @@
 package server.OnDiskStorage
 
 import scala.io.Source
-import java.io.{BufferedWriter, FileWriter}
-import server.Exception.{LoadIndexException, NoKeyFoundException}
+import java.io.{RandomAccessFile, BufferedWriter, FileWriter}
+import server.Exception.{ReindexException, LoadIndexException, NoKeyFoundException}
 import server.Utils.FileUtils._
 import scala.collection.mutable
 
@@ -14,21 +14,26 @@ import scala.collection.mutable
  */
 
 
-class KeyIndex(indexFilename: String, indexLock: String) {
+class KeyIndex(indexFilename: String, database: String, indexLock: String) {
   val index = new mutable.HashMap[String, Long]()
   if (!pathExists(indexFilename)) touch(indexFilename)
-  //load index
-  try {
+  var writer: BufferedWriter = null
+  if (pathExists(indexLock)) reIndex() else loadIndex()
 
-    for (line <- Source.fromFile(indexFilename).getLines()) {
-      val keyPos = line.split(" ")
-      index.put(keyPos(0), keyPos(1).toLong)
+  //load index
+  private def loadIndex() {
+    try {
+
+      for (line <- Source.fromFile(indexFilename).getLines()) {
+        val keyPos = line.split(" ")
+        index.put(keyPos(0), keyPos(1).toLong)
+      }
+    } catch {
+      case _: Throwable => throw new LoadIndexException()
     }
-  } catch {
-    case _: Throwable => throw new LoadIndexException()
+    writer = new BufferedWriter(new FileWriter(indexFilename, true))
   }
 
-  val writer = new BufferedWriter(new FileWriter(indexFilename, true))
 
   def contains(key: String) = index.contains(key)
 
@@ -55,5 +60,31 @@ class KeyIndex(indexFilename: String, indexLock: String) {
     removeFile(indexLock)
   }
 
+  /**
+   * reindex database
+   */
+  def reIndex() {
+    val dbFile = new RandomAccessFile(database, "r")
+    index.clear()
+    writer = new BufferedWriter(new FileWriter(indexFilename))
+    var bytesRead = 0L
+    try {
+      while (dbFile.getFilePointer < dbFile.length()) {
+        val pos = dbFile.getFilePointer
+        val blockSize = dbFile.readInt()
+        val deleted = dbFile.readBoolean()
+        if (!deleted) {
+          val bytes = new Array[Byte](blockSize)
+          bytesRead += dbFile.read(bytes)
+          val block = new String(bytes).split(" ")
+          insert(block(0), pos)
+        } else dbFile.seek(dbFile.getFilePointer + blockSize)
+      }
+    } catch {
+      case e: Throwable => throw new ReindexException()
+    } finally {
+      dbFile.close()
+    }
+  }
 
 }

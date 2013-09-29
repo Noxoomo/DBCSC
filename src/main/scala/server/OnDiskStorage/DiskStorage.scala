@@ -18,19 +18,28 @@ class DiskStorage(dbPath: String) extends Database {
   private val intSize = 4
   private val storageLock = dbDir + "storage.lck"
   private val indexLock = dbDir + "index.lck"
+  private val cleanLock = dbDir + "clean.lck"
   private val keyIndexFilename = dbDir + "index"
   private val dbFilename = dbDir + "db"
   private val maintainer = new DiskStorageMaintains(dbDir)
-  //need to restore?
+  //first run, need to restore or only clean keys?
   if (!pathExists(dbDir)) createFolder(dbDir)
-  if (lockExists()) maintainer.restore()
+  else if (pathExists(storageLock)) {
+    maintainer.restore()
+    touch(indexLock)
+    removeFile(storageLock)
+  } else if (pathExists(cleanLock)) {
+    maintainer.clean()
+    touch(indexLock)
+    removeFile(cleanLock)
+  }
+
+
   //all good, start storage
-  private val index = new KeyIndex(keyIndexFilename, indexLock)
+  private val index = new KeyIndex(keyIndexFilename, dbFilename, indexLock)
   private val commits = new CommitLog()
   private val dbFile = new RandomAccessFile(dbFilename, "rw")
-
-
-  private def lockExists() = pathExists(indexLock) && pathExists(storageLock)
+  private var removedOperations = 0L
 
 
   def contains(key: String): Boolean = {
@@ -41,12 +50,13 @@ class DiskStorage(dbPath: String) extends Database {
     if (contains(key)) throw new KeyExistsException()
     else {
       val ind = dbFile.length()
-      val data = (" F " + key + " " + value).getBytes
+      val data = (key + " " + value).getBytes
       val len = data.length
       dbFile.seek(ind)
       commits.insert(key, value, ind)
       try {
         dbFile.writeInt(len)
+        dbFile.writeBoolean(false)
         dbFile.write(data)
       } catch {
         case e: IOException => throw new InsertKeyException
@@ -62,11 +72,13 @@ class DiskStorage(dbPath: String) extends Database {
     dbFile.seek(ind)
     try {
       val len = dbFile.readInt()
+      val removed = dbFile.readBoolean()
+      if (removed) throw new NoKeyFoundException
       val bytes = new Array[Byte](len)
       dbFile.read(bytes)
       val str = new String(bytes)
-      val strSplit = str.split(" ", 4)
-      strSplit(3)
+      val strSplit = str.split(" ", 2)
+      strSplit(1)
     } catch {
       case e: IOException => throw new KeyReadException()
     }
@@ -82,14 +94,15 @@ class DiskStorage(dbPath: String) extends Database {
 
 
   def remove(key: String) {
-
     if (!contains(key)) throw new NoKeyFoundException()
+    if (removedOperations == 0) touch(cleanLock)
+    removedOperations += 1
     val pos = index.get(key)
     commits.remove(key, pos)
     index.remove(key)
     dbFile.seek(pos + intSize)
     try {
-      dbFile.write(" T".getBytes)
+      dbFile.writeBoolean(true)
     } catch {
       case e: IOException => throw new KeyRemoveException()
     }

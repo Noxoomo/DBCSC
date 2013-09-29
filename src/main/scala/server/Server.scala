@@ -11,6 +11,7 @@ class Server(dbPath: String) {
     try {
       request(0) match {
         case "quit" => {
+          db.close()
           sys.exit(0)
         }
         case "insert" => {

@@ -29,6 +29,7 @@ class DiskStorageTest extends FlatSpec with Matchers {
     intercept[NoKeyFoundException] {
       db.get("key1")
     }
+    db.close()
   }
 
   "DiskStorage" should "pass stress-test" in {
@@ -36,7 +37,7 @@ class DiskStorageTest extends FlatSpec with Matchers {
     val keyPre = "key-"
     val valuePre = "some value "
     //val testLimit = 1000000
-    val testLimit = 100000
+    val testLimit = 1000
     removeFolder(path)
     val db = new DiskStorage(path)
     for (i <- 0 to testLimit) {
@@ -44,8 +45,21 @@ class DiskStorageTest extends FlatSpec with Matchers {
       val id = rand.nextInt(i + 1)
       db.get(keyPre + id) should be(valuePre + id)
     }
+    db.close()
   }
 
+
+  "DiskStorage" should "reindex in existing Database" in {
+    val path = "src/test/resources/testExistDatabase"
+    touch(path + "/index.lck")
+    removeFile(path + "/index")
+    val db = new DiskStorage(path)
+    db.get("key1") should be("value1")
+    db.get("key2") should be("value2")
+    db.get("key3") should be("value3")
+    db.get("key4") should be("value4")
+    db.close()
+  }
   "DiskStorage" should "read from existing Database" in {
     //clean(filename)
     val path = "src/test/resources/testExistDatabase"
@@ -57,6 +71,7 @@ class DiskStorageTest extends FlatSpec with Matchers {
     intercept[NoKeyFoundException] {
       db.get("ssss")
     }
+    db.close()
   }
 
 

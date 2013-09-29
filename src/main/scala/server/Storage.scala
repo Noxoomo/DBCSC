@@ -45,4 +45,8 @@ class Storage(dbPath: String) extends Database {
     dbMemory.remove(key)
     dbStorage.remove(key)
   }
+
+  def close() {
+    dbStorage.close()
+  }
 }
