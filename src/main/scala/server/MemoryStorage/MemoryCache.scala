@@ -66,7 +66,7 @@ class MemoryCache {
 
   def remove(key: String) {
     if (db.contains(key)) {
-      approximateMemory -= (memory(key, db.get(key).get._1))
+      approximateMemory -= memory(key, db.get(key).get._1)
       db.remove(key)
     }
   }

@@ -21,11 +21,11 @@ object FileUtils {
   }
 
   def removeFile(filename: String) {
-    (new File(filename).delete())
+    new File(filename).delete()
   }
 
   def touch(filename: String) {
-    (new File(filename)).createNewFile()
+    new File(filename).createNewFile()
   }
 
   def pathExists(filename: String): Boolean = {

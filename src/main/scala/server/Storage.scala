@@ -1,7 +1,7 @@
 package server
 
 import server.MemoryStorage.MemoryCache
-import server.DiskStorage.DiskStorage
+import server.OnDiskStorage.DiskStorage
 import server.Exception.NoKeyFoundException
 
 /**

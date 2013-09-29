@@ -1,4 +1,4 @@
-package server.DiskStorage
+package server.OnDiskStorage
 
 /**
  * User: Vasily

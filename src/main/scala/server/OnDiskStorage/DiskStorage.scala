@@ -1,4 +1,4 @@
-package server.DiskStorage
+package server.OnDiskStorage
 
 import server.Exception._
 import java.io._
@@ -41,7 +41,7 @@ class DiskStorage(dbPath: String) extends Database {
     if (contains(key)) throw new KeyExistsException()
     else {
       val ind = dbFile.length()
-      val data = (" F " + key + " " + value).getBytes()
+      val data = (" F " + key + " " + value).getBytes
       val len = data.length
       dbFile.seek(ind)
       commits.insert(key, value, ind)
@@ -89,7 +89,7 @@ class DiskStorage(dbPath: String) extends Database {
     index.remove(key)
     dbFile.seek(pos + intSize)
     try {
-      dbFile.write(" T".getBytes())
+      dbFile.write(" T".getBytes)
     } catch {
       case e: IOException => throw new KeyRemoveException()
     }

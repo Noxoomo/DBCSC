@@ -1,4 +1,4 @@
-package server.DiskStorage
+package server.OnDiskStorage
 
 /**
  * User: Vasily
@@ -19,7 +19,7 @@ class CommitLog {
   }
 
   private def write(str: String) {
-    println(str)
+    //println(str)
   }
 
 }

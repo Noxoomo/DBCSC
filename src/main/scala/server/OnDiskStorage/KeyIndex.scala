@@ -1,10 +1,10 @@
-package server.DiskStorage
+package server.OnDiskStorage
 
-import scala.collection.mutable.HashMap
 import scala.io.Source
 import java.io.{BufferedWriter, FileWriter}
 import server.Exception.{LoadIndexException, NoKeyFoundException}
 import server.Utils.FileUtils._
+import scala.collection.mutable
 
 
 /**
@@ -15,7 +15,7 @@ import server.Utils.FileUtils._
 
 
 class KeyIndex(indexFilename: String, indexLock: String) {
-  val index = new HashMap[String, Long]()
+  val index = new mutable.HashMap[String, Long]()
   if (!pathExists(indexFilename)) touch(indexFilename)
   //load index
   try {
