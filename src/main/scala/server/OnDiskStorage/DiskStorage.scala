@@ -16,19 +16,14 @@ import server.Utils.FileUtils._
 class DiskStorage(dbPath: String) extends Database {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
   private val intSize = 4
-  private val storageLock = dbDir + "storage.lck"
   private val indexLock = dbDir + "index.lck"
   private val cleanLock = dbDir + "clean.lck"
   private val keyIndexFilename = dbDir + "index"
   private val dbFilename = dbDir + "db"
-  private val maintainer = new DiskStorageMaintains(dbFilename)
-  //first run, need to restore or only clean keys?
+  private val maintainer = new DiskStorageMaintains(dbDir)
+  //first run or need clean keys?
   if (!pathExists(dbDir)) createFolder(dbDir)
-  else if (pathExists(storageLock)) {
-    maintainer.restore()
-    touch(indexLock)
-    removeFile(storageLock)
-  } else if (pathExists(cleanLock)) {
+  else if (pathExists(cleanLock)) {
     maintainer.clean()
     touch(indexLock)
     removeFile(cleanLock)
@@ -82,7 +77,6 @@ class DiskStorage(dbPath: String) extends Database {
     } catch {
       case e: IOException => throw new KeyReadException()
     }
-
   }
 
   def update(key: String, value: String) {
@@ -110,7 +104,7 @@ class DiskStorage(dbPath: String) extends Database {
 
   def close() {
     index.close()
-    removeFile(storageLock)
+    dbFile.close()
+    commits.close()
   }
-
 }

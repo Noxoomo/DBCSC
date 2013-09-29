@@ -8,8 +8,8 @@ class MemoryCache {
   private val db = new mutable.HashMap[String, (String, Long)]()
   var time = 0L
   var approximateMemory = 0L
-  val approximateMemoryLimit = 512 * 1024L
   //≈512 MB
+  val approximateMemoryLimit = 512 * 1024L
   val cleanRate = 0.7
   val memoryHeuristic = 5L
 

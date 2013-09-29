@@ -10,13 +10,8 @@ import server.Utils.FileUtils._
  * Date: 28.09.13
  * Time: 21:56
  */
-class DiskStorageMaintains(database: String) {
-  /**
-   * restores after crash
-   */
-  def restore() {
-
-  }
+class DiskStorageMaintains(dbDir: String) {
+  val database = dbDir + "db"
 
   /**
    * recreate database (removes old keys and values)

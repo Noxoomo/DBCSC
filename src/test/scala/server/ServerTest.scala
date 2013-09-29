@@ -24,7 +24,6 @@ class ServerTest extends FlatSpec with Matchers {
     } finally {
       removeFolder(filename)
     }
-
   }
 
 

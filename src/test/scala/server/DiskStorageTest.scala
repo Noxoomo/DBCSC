@@ -18,8 +18,8 @@ class DiskStorageTest extends FlatSpec with Matchers {
     db.insert("key1", "value1")
     db.get("key1") should be("value1")
     db.insert("key2", "value2")
-    db.update("key1", "update-value1")
-    db.get("key1") should be("update-value1")
+    db.update("key1", "update-value1\n")
+    db.get("key1") should be("update-value1\n")
     db.get("key2") should be("value2")
     db.remove("key2")
     db.remove("key1")
@@ -33,11 +33,11 @@ class DiskStorageTest extends FlatSpec with Matchers {
   }
 
   "DiskStorage" should "pass stress-test" in {
-    val path = "src/test/resources/testStressDiskStorage"
+    val path = "src/test/resources/testStressDiskStorage/"
     val keyPre = "key-"
     val valuePre = "some value "
     //val testLimit = 1000000
-    val testLimit = 1000
+    val testLimit = 1000000
     removeFolder(path)
     val db = new DiskStorage(path)
     for (i <- 0 to testLimit) {
