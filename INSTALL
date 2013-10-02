@@ -1,2 +1,2 @@
-sbt one-jar
+sbt one-jar  and choose what jar to build (client or server)
 

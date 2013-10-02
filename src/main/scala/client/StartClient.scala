@@ -10,7 +10,7 @@ import com.typesafe.config.ConfigFactory
  * Date: 01.10.13
  * Time: 20:34
  */
-object Client {
+object StartClient {
 
   def loadNodes(path: String) = {
     (for (line <- Source.fromFile(path).getLines()) yield line).toArray

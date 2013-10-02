@@ -1,6 +1,15 @@
 ----
-Run: java -jar jarFile db, where db - database folderName
-or scala jarFile Main
+Run:
+after sbt compile and creation of one-jar for server
+ java -cp DBCSC/target/scala-2.10/classes -jar dbcsc_2.10-0.01-one-jar.jar  NodeName — start server, you should create
+    NodeName folder with akka (=> this node) config
+
+after sbt compile and creation of one-jar for client
+ java -cp DBCSC/target/scala-2.10/classes -jar dbcsc_2.10-0.01-one-jar.jar nodes akka, where nodes — file with
+ node actor adress per line
+ akka - akka config file
+
+ Example of akka config you could find in test/resources/distributedTests/ThreeNodeTest
 ----
 
 API (console)
@@ -13,32 +22,14 @@ quit // quit
 
 DataBase Format:
 DB:
-file from blocks: blocksize T/F key value
-blocksize: Int
-T/F — char (removed this file or not)
-Index:
-key — offset
+blocks of keySizeValueSizeBooleankeyValue
+To fast adress  - using indexes
 ----
 
 Cache:
-Database all operations proceed on disk, for fast access uses cache, at the moment without control of max allowed memory
+Database all operations proceed on disk, for fast access uses cache
 
 
-
----
-to run node – scala jar Node
-Config Node
-first line —  i uid ip port from to
-keys from to — from and to — limits for key.hashCode to store in node
-then nodes
-node nodename ip port from to
-node nodename ip port from to
-…
-
---
-Server Node
-scala jar ServerStarter
-server takes queries from console and store it in single file
 
 
 
