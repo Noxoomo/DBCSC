@@ -3,7 +3,7 @@ package server
 import org.scalatest._
 import server.Exception.NoKeyFoundException
 import scala.util.Random
-import server.Utils.FileUtils._
+import Utils.FileUtils._
 
 
 class StorageTest extends FlatSpec with Matchers {

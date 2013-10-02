@@ -3,7 +3,7 @@ package server.OnDiskStorage
 import scala.io.Source
 import java.io.{RandomAccessFile, BufferedWriter, FileWriter}
 import server.Exception.{ReindexException, LoadIndexException, NoKeyFoundException}
-import server.Utils.FileUtils._
+import Utils.FileUtils._
 import scala.collection.mutable
 
 
@@ -71,14 +71,16 @@ class KeyIndex(indexFilename: String, database: String, indexLock: String) {
     try {
       while (dbFile.getFilePointer < dbFile.length()) {
         val pos = dbFile.getFilePointer
-        val blockSize = dbFile.readInt()
-        val deleted = dbFile.readBoolean()
-        if (!deleted) {
-          val bytes = new Array[Byte](blockSize)
+        val keySize = dbFile.readInt()
+        val valueSize = dbFile.readInt()
+        val removed = dbFile.readBoolean()
+        if (!removed) {
+          val bytes = new Array[Byte](keySize)
           bytesRead += dbFile.read(bytes)
-          val block = new String(bytes).split(" ")
-          insert(block(0), pos)
-        } else dbFile.seek(dbFile.getFilePointer + blockSize)
+          val block = new String(bytes)
+          insert(block, pos)
+          dbFile.seek(dbFile.getFilePointer + valueSize)
+        } else dbFile.seek(dbFile.getFilePointer + keySize + valueSize)
       }
     } catch {
       case e: Throwable => throw new ReindexException()
@@ -86,5 +88,4 @@ class KeyIndex(indexFilename: String, database: String, indexLock: String) {
       dbFile.close()
     }
   }
-
 }

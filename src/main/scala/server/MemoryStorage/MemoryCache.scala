@@ -2,9 +2,10 @@ package server.MemoryStorage
 
 import scala.collection.mutable
 import server.Exception.NoKeyFoundException
+import server.Traits.Database
 
 
-class MemoryCache {
+class MemoryCache extends Database {
   private val db = new mutable.HashMap[String, (String, Long)]()
   var time = 0L
   var approximateMemory = 0L

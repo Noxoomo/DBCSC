@@ -1,8 +1,9 @@
-import server.Server
+package server
+
 import server.Exception.{DataBaseOpenException, KeyReadException}
 
 
-object Main {
+object SingleServer {
 
 
   def main(args: Array[String]) = {

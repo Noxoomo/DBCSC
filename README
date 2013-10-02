@@ -1,5 +1,6 @@
 ----
 Run: java -jar jarFile db, where db - database folderName
+or scala jarFile Main
 ----
 
 API (console)
@@ -21,6 +22,24 @@ key — offset
 
 Cache:
 Database all operations proceed on disk, for fast access uses cache, at the moment without control of max allowed memory
+
+
+
+---
+to run node – scala jar Node
+Config Node
+first line —  i uid ip port from to
+keys from to — from and to — limits for key.hashCode to store in node
+then nodes
+node nodename ip port from to
+node nodename ip port from to
+…
+
+--
+Server Node
+scala jar ServerStarter
+server takes queries from console and store it in single file
+
 
 
 

@@ -2,7 +2,7 @@ package server.OnDiskStorage
 
 import java.io.RandomAccessFile
 import server.Exception.DatabaseCleanException
-import server.Utils.FileUtils._
+import Utils.FileUtils._
 
 
 /**
@@ -24,15 +24,17 @@ class DiskStorageMaintains(dbDir: String) {
     try {
       while (dbFile.getFilePointer < dbFile.length()) {
         val pos = dbFile.getFilePointer
-        val blockSize = dbFile.readInt()
+        val keySize = dbFile.readInt()
+        val valueSize = dbFile.readInt()
         val removed = dbFile.readBoolean()
         if (!removed) {
-          val bytes = new Array[Byte](blockSize)
+          val bytes = new Array[Byte](keySize + valueSize)
           bytesRead += dbFile.read(bytes)
-          writer.writeInt(blockSize)
+          writer.writeInt(keySize)
+          writer.writeInt(valueSize)
           writer.writeBoolean(false)
           writer.write(bytes)
-        } else dbFile.seek(dbFile.getFilePointer + blockSize)
+        } else dbFile.seek(dbFile.getFilePointer + keySize + valueSize)
       }
 
 

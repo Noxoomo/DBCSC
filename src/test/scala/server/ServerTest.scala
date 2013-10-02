@@ -1,7 +1,7 @@
 package server
 
 import org.scalatest._
-import server.Utils.FileUtils._
+import Utils.FileUtils._
 
 class ServerTest extends FlatSpec with Matchers {
   val filename = "src/test/resources/" + "serverTest"

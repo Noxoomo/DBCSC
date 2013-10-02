@@ -1,7 +1,6 @@
-package server
+package server.Traits
 
-
-abstract class Database {
+trait Database {
   /**
    * if key exists — return true, otherwise false
    * @param key for check

@@ -3,6 +3,7 @@ package server
 import server.MemoryStorage.MemoryCache
 import server.OnDiskStorage.DiskStorage
 import server.Exception.NoKeyFoundException
+import server.Traits.Database
 
 /**
  * User: Vasily

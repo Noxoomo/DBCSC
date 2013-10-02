@@ -4,7 +4,7 @@ import org.scalatest._
 import server.Exception.NoKeyFoundException
 import scala.util.Random
 
-import server.Utils.FileUtils._
+import Utils.FileUtils._
 import server.OnDiskStorage.DiskStorage
 
 class DiskStorageTest extends FlatSpec with Matchers {
@@ -37,7 +37,7 @@ class DiskStorageTest extends FlatSpec with Matchers {
     val keyPre = "key-"
     val valuePre = "some value "
     //val testLimit = 1000000
-    val testLimit = 10000000
+    val testLimit = 100000
     removeFolder(path)
     val startTime = System.currentTimeMillis()
 
@@ -64,7 +64,7 @@ class DiskStorageTest extends FlatSpec with Matchers {
       db.get("key1")
     }
     db.get("key2") should be("value-2")
-    db.get("key3") should be("key-3")
+    db.get("key3") should be("value-3")
     db.get("key4") should be("value4")
     db.close()
   }
