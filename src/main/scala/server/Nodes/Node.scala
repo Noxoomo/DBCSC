@@ -20,7 +20,7 @@ class Node(private val nodeName: String) extends Actor {
 
     case Get(key) => {
       val response = if (storage contains key) Answer(key, storage.get(key))
-      else Answer(key, "NoKeyFound")
+      else NoKey(key)
       sender ! response
     }
     case "test" => {
@@ -45,7 +45,7 @@ class Node(private val nodeName: String) extends Actor {
     }
     case Update(key: String, value: String) => {
       if (!storage.contains(key)) {
-        sender ! Error("Can't update, key already exists")
+        sender ! NoKey(key)
       } else {
         storage.update(key, value)
         sender ! OK("Key updated")

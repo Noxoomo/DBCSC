@@ -4,7 +4,7 @@ import Messages._
 import akka.actor.{Props, Actor}
 import akka.pattern.ask
 import scala.concurrent.duration._
-import scala.concurrent.Await
+import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
 
 
@@ -26,6 +26,7 @@ class Router(nodesInfo: Array[String]) extends Actor {
       case Answer(key, value) => "for " + key + " last record is " + value
       case OK(text) => text
       case Error(key) => "Error " + key
+      case NoKey(key) => "No key found " + key
     }
   }
 
@@ -39,28 +40,44 @@ class Router(nodesInfo: Array[String]) extends Actor {
         case "get" => {
           val node = getNodes(request(1))
           val future = node.ask(Get(request(1)))(5 seconds)
-          val result = Await.result(future, timeout.duration)
-          println(getResult(result))
+          try {
+            val result = Await.result(future, timeout.duration)
+            println(getResult(result))
+          } catch {
+            case timeout: TimeoutException => println("Await timeout")
+          }
         }
         case "remove" => {
           val node = getNodes(request(1))
           val future = node.ask(Remove(request(1)))(5 seconds)
-          val result = Await.result(future, timeout.duration)
-          println(getResult(result))
+          try {
+            val result = Await.result(future, timeout.duration)
+            println(getResult(result))
+          } catch {
+            case timeout: TimeoutException => println("Await timeout")
+          }
         }
         case "insert" => {
           val params = request(1).split("->", 2)
           val node = getNodes(params(0))
           val future = node.ask(Insert(params(0), params(1)))(5 seconds)
-          val result = Await.result(future, timeout.duration)
-          println(getResult(result))
+          try {
+            val result = Await.result(future, timeout.duration)
+            println(getResult(result))
+          } catch {
+            case timeout: TimeoutException => println("Await timeout")
+          }
         }
         case "update" => {
           val params = request(1).split("->", 2)
           val node = getNodes(params(0))
           val future = node.ask(Update(params(0), params(1)))(5 seconds)
-          val result = Await.result(future, timeout.duration)
-          println(getResult(result))
+          try {
+            val result = Await.result(future, timeout.duration)
+            println(getResult(result))
+          } catch {
+            case timeout: TimeoutException => println("Await timeout")
+          }
         }
         case _ => {
           println("Don't know command")

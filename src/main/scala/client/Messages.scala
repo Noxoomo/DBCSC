@@ -32,5 +32,6 @@ object Messages {
 
   case class Error(key: String) extends Response
 
+  case class NoKey(key: String) extends Response
 
 }
