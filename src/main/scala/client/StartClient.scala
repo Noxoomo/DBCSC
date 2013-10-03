@@ -27,7 +27,7 @@ object StartClient {
     val conf = Source.fromFile(akkaConf).mkString
     val customConf = ConfigFactory.parseString(conf)
     val system = ActorSystem("Client", ConfigFactory.load(customConf)) //,ConfigFactory.load(akkaConfig))
-    val client = system.actorOf(Router.props(nodes), "Router")
+    val client = system.actorOf(ConsoleListener.props(nodes), "Console")
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit").foreach(client ! _)
     client ! "quit"
     system.awaitTermination()

@@ -8,6 +8,11 @@ import scala.concurrent.Await
 import akka.util.Timeout
 
 import akka.pattern.ask
+import Utils.FileUtils._
+import client.Messages.Get
+import client.Messages.Answer
+import client.Messages.NoKey
+import scala.util.Random
 
 /**
  * User: Vasily
@@ -15,9 +20,11 @@ import akka.pattern.ask
  * Time: 18:17
  */
 class NodesTest extends FlatSpec with Matchers {
+  val rand = new Random()
+  val timeout = Timeout(1000)
+
   "Nodes" should "start and proceed queries" in {
     val dbDir = "src/test/resources/testExistDatabase/"
-    val timeout = Timeout(1000)
     val system = ActorSystem("NodeTest")
     val node = system.actorOf(server.Nodes.Node.props(dbDir))
 
@@ -40,14 +47,28 @@ class NodesTest extends FlatSpec with Matchers {
     result should be(NoKey("non-existing key"))
   }
 
-  ignore should "proceed all CRUD queries" in {
-    val dbDir = "src/test/resources/testExistDatabase/"
+
+  "Nodes" should "pass stress-test" in {
+    val path = "src/test/resources/stressNode/"
+    removeFolder(path)
+    val keyPre = "key-"
+    val valuePre = "some value "
     val timeout = Timeout(1000)
     val system = ActorSystem("NodeTest")
-    val node = system.actorOf(server.Nodes.Node.props(dbDir))
+
+    val node = system.actorOf(server.Nodes.Node.props(path))
 
 
+    //val testLimit = 1000000
+    val testLimit = 100000
+
+    for (i <- 0 to testLimit) {
+      val future = node.ask(Insert(keyPre + i.toString, valuePre + i.toString))(5 seconds)
+      val result = Await.result(future, timeout.duration)
+      result should be(OK("key inserted"))
+      val id = rand.nextInt(i + 1)
+      val futureGet = node.ask(Get(keyPre + id.toString))(5 seconds)
+      Await.result(futureGet, timeout.duration) should be(Answer(keyPre + id.toString, valuePre + id.toString))
+    }
   }
-
-
 }

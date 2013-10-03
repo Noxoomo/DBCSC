@@ -1,0 +1,36 @@
+Three node test.To manual network test put  in nodesN - config for nodes and database, in client - client config
+
+Node and client akka config. Put this into file akka for nodes, for client just provide path as second argument:
+
+akka {
+     loglevel = "DEBUG"
+     actor {
+      provider = "akka.remote.RemoteActorRefProvider"
+     }
+     remote {
+      transport = "akka.remote.netty.NettyRemoteTransport"
+      log-sent-messages = on
+      log-received-messages = on
+      netty.tcp {
+        hostname = "127.0.0.1"
+        #should be different for each node, if run on the same machine
+        port = 2511
+      }
+server {
+# The port clients should connect to. Default is 2552 (AKKA)
+port = 2610
+}
+     }
+}
+
+To config client to connect to running nodes:
+provide to client as a first run argument path to file with nodes:
+In each line – one node, for example:
+
+akka.tcp://Node@127.0.0.1:2511/user/Storage
+akka.tcp://Node@127.0.0.1:2512/user/Storage
+akka.tcp://Node@127.0.0.1:2513/user/Storage
+
+
+
+

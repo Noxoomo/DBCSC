@@ -23,22 +23,17 @@ class Node(private val nodeName: String) extends Actor {
       else NoKey(key)
       sender ! response
     }
-    case "test" => {
-      sender ! "test 1"
-    }
     case Remove(key) => {
       if (storage contains key) {
         storage.remove(key)
-        sender ! Removed(true)
+        sender ! Removed(done = true)
       }
-      else sender ! Removed(false)
+      else sender ! Removed(done = false)
     }
     case Insert(key: String, value: String) => {
-      if (storage contains (key)) {
-        println("key already exists")
+      if (storage contains key) {
         sender ! Error("Key already exists")
       } else {
-        println("insert %s %s".format(key, value))
         storage.insert(key, value)
         sender ! OK("key inserted")
       }
@@ -51,7 +46,7 @@ class Node(private val nodeName: String) extends Actor {
         sender ! OK("Key updated")
       }
     }
-    case _ => print("some message")
+    case _ => sender ! Error("unknown command")
   }
 
 

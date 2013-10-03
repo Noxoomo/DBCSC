@@ -11,7 +11,7 @@ class StorageTest extends FlatSpec with Matchers {
 
   "Storage" should "create storage and implement CRUD" in {
     //clean(filename)
-    val path = "src/test/resources/test01Storage"
+    val path = "src/test/resources/test01Storage/"
     removeFolder(path)
     val db = new Storage(path)
     db.insert("key1", "value1")
@@ -31,7 +31,7 @@ class StorageTest extends FlatSpec with Matchers {
   }
 
   "Storage" should "pass stress-test" in {
-    val path = "src/test/resources/testStressDiskStorage"
+    val path = "src/test/resources/testStressStorage/"
     val keyPre = "key-"
     val valuePre = "some value "
     //val testLimit = 1000000

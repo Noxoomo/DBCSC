@@ -40,8 +40,8 @@ class DiskStorageTest extends FlatSpec with Matchers {
     val testLimit = 100000
     removeFolder(path)
     val startTime = System.currentTimeMillis()
-
     val db = new DiskStorage(path)
+
     for (i <- 0 to testLimit) {
       db.insert(keyPre + i.toString, valuePre + i.toString)
       val id = rand.nextInt(i + 1)

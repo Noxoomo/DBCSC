@@ -9,7 +9,7 @@ after sbt compile and creation of one-jar for client
  node actor adress per line
  akka - akka config file
 
- Example of akka config you could find in test/resources/distributedTests/ThreeNodeTest
+ Example of akka config and how to test nodes on remote systems you could find in test/resources/distributedTests/ThreeNodeTest/ManualTestNodes
 ----
 
 API (console)
