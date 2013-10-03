@@ -13,8 +13,8 @@ import akka.util.Timeout
  * Time: 14:36
  */
 class ConsoleListener(nodes: Array[String]) extends Actor {
-  val router = context.actorOf(Router.props(nodes), "route")
   val timeout = Timeout(1000)
+  val router = context.actorOf(Router.props(nodes), "route")
 
   def getResult(result: Any): String = {
     result match {
@@ -83,6 +83,6 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
 
 object ConsoleListener {
 
-  def props(nodes: Array[String]): Props = Props(classOf[Router], nodes)
+  def props(nodes: Array[String]): Props = Props(classOf[ConsoleListener], nodes)
 
 }
