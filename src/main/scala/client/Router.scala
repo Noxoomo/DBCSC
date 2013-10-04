@@ -19,6 +19,12 @@ class Router(nodesInfo: Array[String]) extends Actor {
 
 
   override def receive: Actor.Receive = {
+    case Close => {
+      for (node <- nodes) {
+        node ! Close()
+      }
+      context.stop(self)
+    }
     case Get(key) => {
       val node = getNodes(key)
       val future = node.ask(Get(key))(5 seconds)

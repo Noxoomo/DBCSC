@@ -34,4 +34,6 @@ object Messages {
 
   case class NoKey(key: String) extends Response
 
+  case class Close()
+
 }

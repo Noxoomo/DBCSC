@@ -41,10 +41,12 @@ class NodesTest extends FlatSpec with Matchers {
     val result3 = Await.result(future3, timeout.duration)
     result3 should be(Answer("key3", "value3"))
 
+
     //non-exists key
     val future = node.ask(Get("non-existing key"))(5 seconds)
     val result = Await.result(future, timeout.duration)
     result should be(NoKey("non-existing key"))
+    node ! Close()
   }
 
 
@@ -55,13 +57,10 @@ class NodesTest extends FlatSpec with Matchers {
     val valuePre = "some value "
     val timeout = Timeout(1000)
     val system = ActorSystem("NodeTest")
-
     val node = system.actorOf(server.Nodes.Node.props(path))
-
 
     //val testLimit = 1000000
     val testLimit = 100000
-
     for (i <- 0 to testLimit) {
       val future = node.ask(Insert(keyPre + i.toString, valuePre + i.toString))(5 seconds)
       val result = Await.result(future, timeout.duration)

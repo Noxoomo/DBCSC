@@ -28,7 +28,10 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
 
   override def receive: Actor.Receive = {
     case null =>
-    case "quit" =>
+    case "quit" => {
+      router ! Close()
+      context.stop(self)
+    }
     case msg: String => {
       val request = msg.split(" ", 2)
       request(0) match {

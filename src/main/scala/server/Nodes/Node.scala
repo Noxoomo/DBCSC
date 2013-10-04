@@ -46,6 +46,10 @@ class Node(private val nodeName: String) extends Actor {
         sender ! OK("Key updated")
       }
     }
+    case Close() => {
+      context.stop(self)
+      storage.close()
+    }
     case _ => sender ! Error("unknown command")
   }
 

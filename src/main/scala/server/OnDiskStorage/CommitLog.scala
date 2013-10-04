@@ -1,36 +1,40 @@
 package server.OnDiskStorage
 
+import java.io.{FileWriter, BufferedWriter}
+import Utils.FileUtils._
 
 /**
- * User: Vasily
- * Date: 28.09.13
- * Time: 21:01
- */
-class CommitLog {
-  //val writer = new BufferedWriter(new FileWriter("commits"))
+Commit log — if db crashed during write => restore from commit log
+  commit log stores only insert/update operations: it place where in db should be key-value
+  */
+class CommitLog(dir: String) {
+  val writer = new BufferedWriter(new FileWriter(dir + CommitLog.fileName))
+  val remove = new BufferedWriter(new FileWriter(dir + CommitLog.fileName + ".remove"))
 
-  //val writer = new BufferedWriter(new PrintWriter(System.err))
-  def insert(key: String, value: String, pos: Long) = {
-    write("inserted " + " " + pos.toString + " " + key + " " + value)
+  def write(key: String, value: String, index: Long) {
+    writer.write(("%s\n%d %d %d\n%s").format(key, index, key.length, value.length, value))
+    writer.flush()
   }
 
-  def update(key: String, value: String, pos: Long) = {
-    write("updated " + key + " " + pos.toString + " " + value)
-  }
-
-  def remove(key: String, pos: Long) {
-    write("removed " + " " + pos.toString + " " + key)
-  }
-
-  private def write(str: String) {
-    val log = " " + str
-    //writer.write(log.length + log)
-    //writer.flush()
+  def remove(index: Long) {
+    remove.write(index + "\n")
+    remove.flush()
   }
 
   def close() {
-    //writer.close()
-    //removeFile("commits")
+    writer.close()
+    remove.close()
+    removeFile(dir + CommitLog.fileName)
+    removeFile(dir + CommitLog.fileName + ".remove")
   }
 
+}
+
+object CommitLog {
+  def remove(dir: String) {
+    removeFile(dir + fileName)
+    removeFile(dir + fileName + ".remove")
+  }
+
+  val fileName = "commits"
 }

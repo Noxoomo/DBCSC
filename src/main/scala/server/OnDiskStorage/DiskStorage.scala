@@ -18,11 +18,18 @@ class DiskStorage(dbPath: String) extends Database {
   private val infoSize = 4 * 2
   private val indexLock = dbDir + "index.lck"
   private val cleanLock = dbDir + "clean.lck"
+  private val commitLock = dbDir + "commit.lck"
   private val keyIndexFilename = dbDir + "index"
   private val dbFilename = dbDir + "db"
   private val maintainer = new DiskStorageMaintains(dbDir)
   //first run or need clean keys?
   if (!pathExists(dbDir)) createFolder(dbDir)
+  else if (pathExists(commitLock)) {
+    maintainer.restore()
+    removeFile(commitLock)
+    CommitLog.remove(dbDir)
+    touch(indexLock)
+  }
   else if (pathExists(cleanLock)) {
     maintainer.clean()
     touch(indexLock)
@@ -32,7 +39,7 @@ class DiskStorage(dbPath: String) extends Database {
 
   //all good, start storage
   private val index = new KeyIndex(keyIndexFilename, dbFilename, indexLock)
-  private val commits = new CommitLog()
+  private val commits = new CommitLog(dbDir)
   private val dbFile = new RandomAccessFile(dbFilename, "rw")
   private var removedOperations = 0L
 
@@ -47,7 +54,7 @@ class DiskStorage(dbPath: String) extends Database {
       val ind = dbFile.length()
       val data = (key + value).getBytes
       dbFile.seek(ind)
-      commits.insert(key, value, ind)
+      commits.write(key, value, ind)
       try {
         dbFile.writeInt(key.length)
         dbFile.writeInt(value.length)
@@ -81,7 +88,6 @@ class DiskStorage(dbPath: String) extends Database {
 
   def update(key: String, value: String) {
     if (!contains(key)) throw new NoKeyFoundException()
-    commits.update(key, value, index.get(key))
     remove(key)
     insert(key, value)
   }
@@ -89,10 +95,11 @@ class DiskStorage(dbPath: String) extends Database {
 
   def remove(key: String) {
     if (!contains(key)) throw new NoKeyFoundException()
+
     if (removedOperations == 0) touch(cleanLock)
     removedOperations += 1
     val pos = index.get(key)
-    commits.remove(key, pos)
+    commits.remove(pos)
     index.remove(key)
     dbFile.seek(pos + infoSize)
     try {
