@@ -3,6 +3,7 @@ package server.Nodes
 import server.Storage
 import akka.actor.{Props, Actor}
 import client.Messages._
+import scala.util.Random
 
 
 /**
@@ -14,15 +15,19 @@ import client.Messages._
 class Node(private val nodeName: String) extends Actor {
   private val dbPath = if (nodeName.endsWith("/")) nodeName else nodeName + "/"
   private val storage = new Storage(dbPath)
+  private val rand = new Random()
 
 
   def receive = {
 
+
     case Get(key) => {
+
       val response = if (storage contains key) Answer(key, storage.get(key))
       else NoKey(key)
       sender ! response
     }
+
     case Remove(key) => {
       if (storage contains key) {
         storage.remove(key)
@@ -48,9 +53,13 @@ class Node(private val nodeName: String) extends Actor {
     }
     case Close() => {
       context.stop(self)
-      storage.close()
+      sender ! OK("stopped")
     }
     case _ => sender ! Error("unknown command")
+  }
+
+  override def postStop() {
+    storage.close()
   }
 
 

@@ -18,7 +18,7 @@ trait Database {
 
   /**
    * if key exists returns value of this key, otherwise throws NoKeyFoundException
-   * @param key finds key in db and returns value
+   * @param key finds key in da and returns value
    * @throws NoKeyFoundException    if key doesn't exist
    *
    */
@@ -28,7 +28,7 @@ trait Database {
    * remove + insert
    * @param key  to update
    * @param value new value
-   * @throws KeyExistsException, NoKeyFoundException if KeyExists or no key in DB
+   * @throws NoKeyFoundException if no key in DB
    *
    */
   def update(key: String, value: String)

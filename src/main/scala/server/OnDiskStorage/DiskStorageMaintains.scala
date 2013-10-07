@@ -1,9 +1,7 @@
 package server.OnDiskStorage
 
-import java.io.{IOException, FileReader, BufferedReader, RandomAccessFile}
-import server.Exception.{KeyRemoveException, DatabaseCleanException}
+import java.io._
 import Utils.FileUtils._
-import scala.io.Source
 
 
 /**
@@ -11,117 +9,105 @@ import scala.io.Source
  * Date: 28.09.13
  * Time: 21:56
  */
-class DiskStorageMaintains(dbDir: String) {
-  val database = dbDir + "db"
-  val infoSize = 4 * 2
+class DiskStorageMaintains(dbPath: String) {
+  private val database = dbPath + "db/"
+  private val infoSize = 4 * 2
+  private val commitsFilename = dbPath + "commits"
+  if (!pathExists(database)) createFolder(database)
+
+  def getFileList() = new File(database).listFiles()
+    .filter(x => !x.getName.endsWith(".merge")).sortBy(x => x.getName.toLong)
+
+  def merge(files: Array[File]): List[RandomAccessFile] = {
+    if (files.length > 1) {
+      val readers = (for (file <- files) yield new RandomAccessFile(file.getAbsolutePath, "r")).toList
+      val filename = database + System.currentTimeMillis().toString
+      val file = new RandomAccessFile(filename + ".merge", "rw")
+      for (index <- new KeyIndex(readers).index.values) {
+        if (!index.removed) {
+          index.file.seek(index.offset)
+          val keyLen = index.file.readInt()
+          val removed = index.file.readBoolean()
+          val valueLen = index.file.readInt()
+          val bytes = new Array[Byte](keyLen + valueLen)
+          index.file.read(bytes)
+          file.writeInt(keyLen)
+          file.writeBoolean(removed)
+          file.writeInt(valueLen)
+          file.write(bytes)
+        }
+      }
+      file.close()
+      new File(filename + ".merge").renameTo(new File(filename))
+      for (file <- files) removeFile(file.getAbsoluteFile.toString)
+      List(new RandomAccessFile(filename, "r"))
+    }
+    else if (files.length == 1) {
+      List(new RandomAccessFile(files(0), "r"))
+    }
+    else {
+      null
+    }
+  }
+
+  def flush(memory: Memory): RandomAccessFile = {
+    val filename = database + System.currentTimeMillis().toString
+
+    //val file = new RandomAccessFile(filename, "rws")
+    val file = new DataOutputStream(new FileOutputStream(filename))
+    for (key <- memory.getData.keySet) {
+      val value = memory.get(key)
+      file.writeInt(key.length)
+      file.writeBoolean(false)
+      file.writeInt(value.length)
+      file.write((key + value).getBytes())
+    }
+    for (key <- memory.getRemoved) {
+      file.writeInt(key.length)
+      file.writeBoolean(true)
+      file.write((key).getBytes())
+    }
+    file.flush();
+    file.close()
+
+    new RandomAccessFile(filename, "r")
+  }
 
   /**
    * recreate database (removes old keys and values)
    */
-  def clean() {
-    val dbFile = new RandomAccessFile(database, "r")
-    val writer = new RandomAccessFile(database + ".new", "rw")
-
-    var bytesRead = 0L
-    try {
-      while (dbFile.getFilePointer < dbFile.length()) {
-        val pos = dbFile.getFilePointer
-        val keySize = dbFile.readInt()
-        val valueSize = dbFile.readInt()
-        val removed = dbFile.readBoolean()
-        if (!removed) {
-          val bytes = new Array[Byte](keySize + valueSize)
-          bytesRead += dbFile.read(bytes)
-          writer.writeInt(keySize)
-          writer.writeInt(valueSize)
-          writer.writeBoolean(false)
-          writer.write(bytes)
-        } else dbFile.seek(dbFile.getFilePointer + keySize + valueSize)
-      }
+  def clean(): List[RandomAccessFile] = merge(getFileList())
 
 
-    } catch {
-      case e: Throwable => throw new DatabaseCleanException()
-    } finally {
-      dbFile.close()
-      writer.close()
-    }
-    removeFile(database)
-    renameFile(database + ".new", database)
-  }
-
-  def restore() {
-    val reader = new BufferedReader(new FileReader(dbDir + CommitLog.fileName))
-    val dbFile = new RandomAccessFile(database, "rw")
-    var eof = false
-    while (!eof) {
-      val key = reader.readLine
-      val info = reader.readLine().split(" ")
-      val index = info(0).toLong
-      val keyLength = info(1).toInt
-      val valueLength = info(2).toInt
-      val valueArr = new Array[Char](valueLength)
-      if (reader.read(valueArr) == -1) eof = true
-      val value = new String(valueArr)
-      if (!eof) //if -1  — we crashed during write key-value, 	 What a pity!
-        try {
-          dbFile.seek(index)
-          val dbKeyLen = dbFile.readInt()
-          val dbValLen = dbFile.readInt()
-          val status = dbFile.readBoolean()
-          val dbKeyBytes = new Array[Byte](dbKeyLen)
-          val dbValBytes = new Array[Byte](dbValLen)
-          dbFile.read(dbKeyBytes)
-          dbFile.read(dbValBytes)
-          //some error in db
-          if (keyLength != dbKeyLen || valueLength != dbValLen ||
-            value != new String(dbValBytes) || key != new String(dbKeyBytes)) {
-            throw new Exception("Some error in db")
-
-          }
-        } catch {
-          case e: Exception => {
-            //we should restore db from this point
-            dbFile.seek(index)
-            dbFile.writeInt(keyLength)
-            dbFile.writeInt(value.length)
-            dbFile.writeBoolean(false)
-            val data = (key + value).getBytes
-            dbFile.write(data)
-
-            while (!eof) {
-              val info = reader.readLine().split(" ")
-              val index = info(0).toLong
-              val keyLength = info(1).toInt
-              val valueLength = info(2).toInt
-              val valueArr = new Array[Char](valueLength)
-              if (reader.read(valueArr) == -1) eof = true
-              if (!eof) {
-                val value = new String(valueArr)
-                dbFile.seek(index)
-                dbFile.writeInt(keyLength)
-                dbFile.writeInt(value.length)
-                dbFile.writeBoolean(false)
-                val data = (key + value).getBytes
-                dbFile.write(data)
-              }
+  def restore(): Memory = {
+    if (!pathExists(commitsFilename)) new Memory
+    else {
+      val reader = new BufferedReader(new FileReader(dbPath + CommitLog.fileName))
+      val memory = new Memory()
+      try {
+        var eof = false
+        while (!eof) {
+          val key = reader.readLine()
+          if (key == null) eof = true
+          else {
+            if (key.endsWith("->")) {
+              memory.remove(key.substring(0, key.length - 2))
+            } else {
+              val valueLen = reader.readLine().toInt
+              val bytes = new Array[Char](valueLen)
+              reader.read(bytes)
+              reader.readLine()
+              memory.insert(key, new String(bytes))
             }
           }
-        } finally {
-          reader.close()
         }
-    }
-    for (line <- Source.fromFile(dbDir + "commits.remove")) {
-      val index = line.toLong
-      dbFile.seek(index + infoSize)
-      try {
-        dbFile.writeBoolean(true)
-      } catch {
-        case e: IOException => throw new KeyRemoveException()
       }
+      catch {
+        case e: IOException => throw e
+      } finally {
+        reader.close()
+      }
+      memory
     }
-    dbFile.close()
   }
-
-
 }

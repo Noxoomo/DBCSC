@@ -9,6 +9,8 @@ after sbt compile and creation of one-jar for client
  node actor adress per line
  akka - akka config file
 
+
+Or just run: sbt run cmd and choose class to load
  Example of akka config and how to test nodes on remote systems you could find in test/resources/distributedTests/ThreeNodeTest/ManualTestNodes
 ----
 

@@ -4,7 +4,7 @@ import org.scalatest._
 import Utils.FileUtils._
 
 class ServerTest extends FlatSpec with Matchers {
-  val filename = "src/test/resources/" + "serverTest"
+  val filename = "src/test/resources/" + "serverTest/"
 
 
   "Server" should "start database and process queries" in {

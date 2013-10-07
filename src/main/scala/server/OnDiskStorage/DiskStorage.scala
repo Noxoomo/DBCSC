@@ -15,76 +15,70 @@ import server.Traits.Database
 
 class DiskStorage(dbPath: String) extends Database {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
-  private val infoSize = 4 * 2
-  private val indexLock = dbDir + "index.lck"
-  private val cleanLock = dbDir + "clean.lck"
-  private val commitLock = dbDir + "commit.lck"
-  private val keyIndexFilename = dbDir + "index"
-  private val dbFilename = dbDir + "db"
   private val maintainer = new DiskStorageMaintains(dbDir)
-  //first run or need clean keys?
+  private val memoryLimit = 80 * 1024 * 1024L
+  private val files = maintainer.clean()
+  var busy = false
   if (!pathExists(dbDir)) createFolder(dbDir)
-  else if (pathExists(commitLock)) {
-    maintainer.restore()
-    removeFile(commitLock)
-    CommitLog.remove(dbDir)
-    touch(indexLock)
-  }
-  else if (pathExists(cleanLock)) {
-    maintainer.clean()
-    touch(indexLock)
-    removeFile(cleanLock)
-  }
+
+  private val memory = maintainer.restore()
+
+
+  //first run or need clean keys?
 
 
   //all good, start storage
-  private val index = new KeyIndex(keyIndexFilename, dbFilename, indexLock)
-  private val commits = new CommitLog(dbDir)
-  private val dbFile = new RandomAccessFile(dbFilename, "rw")
-  private var removedOperations = 0L
+  private val index = new KeyIndex(if (files != null) files.toList else null)
+  private var commits = new CommitLog(dbPath)
 
+  def flush() {
+    index.indexFile(maintainer.flush(memory))
+    memory.clear()
+    commits.close()
+    commits = new CommitLog(dbPath)
+  }
 
   def contains(key: String): Boolean = {
-    if (index contains key) true else false
+    if (memory contains (key)) true
+    else if (memory.wasRemoved(key)) false
+    else if (index contains key) true else false
   }
 
   def insert(key: String, value: String) {
     if (contains(key)) throw new KeyExistsException()
     else {
-      val ind = dbFile.length()
-      val data = (key + value).getBytes
-      dbFile.seek(ind)
-      commits.write(key, value, ind)
-      try {
-        dbFile.writeInt(key.length)
-        dbFile.writeInt(value.length)
-        dbFile.writeBoolean(false)
-        dbFile.write(data)
-      } catch {
-        case e: IOException => throw new InsertKeyException
+      commits.insert(key, value)
+      memory.insert(key, value)
+      if (memory.getMemoryUsage > memoryLimit) {
+        busy = true
+        flush()
+        busy = false
       }
-      index.insert(key, ind)
     }
   }
 
 
   def get(key: String) = {
-    if (!contains(key)) throw new NoKeyFoundException()
-    val ind = index.get(key)
-    dbFile.seek(ind)
-    try {
-      val keyLen = dbFile.readInt()
-      val valueLen = dbFile.readInt()
-      val removed = dbFile.readBoolean()
-      if (removed) throw new NoKeyFoundException
-      val bytes = new Array[Byte](keyLen + valueLen)
-      dbFile.read(bytes)
-      val str = new String(bytes)
-      str.substring(keyLen)
-    } catch {
-      case e: IOException => throw new KeyReadException()
-    }
+    if (memory contains (key)) memory.get(key)
+    else if (memory.wasRemoved(key)) throw new NoKeyFoundException()
+    else if (index contains (key)) {
+      val ind = index.get(key)
+      ind.file.seek(ind.offset)
+      try {
+        val keyLen = ind.file.readInt()
+        val removed = ind.file.readBoolean()
+        if (removed) throw new NoKeyFoundException
+        val valueLen = ind.file.readInt()
+        val bytes = new Array[Byte](keyLen + valueLen)
+        ind.file.read(bytes)
+        val str = new String(bytes)
+        str.substring(keyLen)
+      } catch {
+        case e: IOException => throw new KeyReadException()
+      }
+    } else throw new NoKeyFoundException
   }
+
 
   def update(key: String, value: String) {
     if (!contains(key)) throw new NoKeyFoundException()
@@ -95,23 +89,13 @@ class DiskStorage(dbPath: String) extends Database {
 
   def remove(key: String) {
     if (!contains(key)) throw new NoKeyFoundException()
-
-    if (removedOperations == 0) touch(cleanLock)
-    removedOperations += 1
-    val pos = index.get(key)
-    commits.remove(pos)
-    index.remove(key)
-    dbFile.seek(pos + infoSize)
-    try {
-      dbFile.writeBoolean(true)
-    } catch {
-      case e: IOException => throw new KeyRemoveException()
-    }
+    commits.remove(key)
+    memory.remove(key)
   }
 
   def close() {
-    index.close()
-    dbFile.close()
+    busy = true
+    maintainer.flush(memory)
     commits.close()
   }
 }

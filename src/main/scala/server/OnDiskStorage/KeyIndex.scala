@@ -1,9 +1,7 @@
 package server.OnDiskStorage
 
-import scala.io.Source
-import java.io.{RandomAccessFile, BufferedWriter, FileWriter}
-import server.Exception.{ReindexException, LoadIndexException, NoKeyFoundException}
-import Utils.FileUtils._
+import java.io.RandomAccessFile
+import server.Exception.{ReindexException, NoKeyFoundException}
 import scala.collection.mutable
 
 
@@ -14,78 +12,47 @@ import scala.collection.mutable
  */
 
 
-class KeyIndex(indexFilename: String, database: String, indexLock: String) {
-  val index = new mutable.HashMap[String, Long]()
-  if (!pathExists(indexFilename)) touch(indexFilename)
-  var writer: BufferedWriter = null
-  if (pathExists(indexLock)) reIndex() else loadIndex()
+class KeyIndex(files: List[RandomAccessFile]) {
+  val index = new mutable.HashMap[String, Index]()
 
-  //load index
-  private def loadIndex() {
-    try {
-
-      for (line <- Source.fromFile(indexFilename).getLines()) {
-        val keyPos = line.split(" ")
-        index.put(keyPos(0), keyPos(1).toLong)
-      }
-    } catch {
-      case _: Throwable => throw new LoadIndexException()
-    }
-    writer = new BufferedWriter(new FileWriter(indexFilename, true))
-  }
-
+  if (files != null && !files.isEmpty) reIndex()
 
   def contains(key: String) = index.contains(key)
 
-  def insert(key: String, position: Long) {
-    writer.append(key + " " + position + "\n")
-    writer.flush()
-    index.put(key, position)
-  }
-
-  def remove(key: String) = index.remove(key)
-
-  def get(key: String): Long = {
+  def get(key: String): Index = {
     val answer = index.get(key)
     if (answer.isDefined) answer.get
     else throw new NoKeyFoundException
   }
 
-  def lock() {
-    touch(indexLock)
-  }
-
-  def close() {
-    writer.close()
-    removeFile(indexLock)
-  }
-
   /**
    * reindex database
    */
-  def reIndex() {
-    val dbFile = new RandomAccessFile(database, "r")
-    index.clear()
-    writer = new BufferedWriter(new FileWriter(indexFilename))
+  def indexFile(file: RandomAccessFile) = {
     var bytesRead = 0L
+    file.seek(0)
     try {
-      while (dbFile.getFilePointer < dbFile.length()) {
-        val pos = dbFile.getFilePointer
-        val keySize = dbFile.readInt()
-        val valueSize = dbFile.readInt()
-        val removed = dbFile.readBoolean()
-        if (!removed) {
-          val bytes = new Array[Byte](keySize)
-          bytesRead += dbFile.read(bytes)
-          val block = new String(bytes)
-          insert(block, pos)
-          dbFile.seek(dbFile.getFilePointer + valueSize)
-        } else dbFile.seek(dbFile.getFilePointer + keySize + valueSize)
+      while (file.getFilePointer < file.length()) {
+        val pos = file.getFilePointer
+        val keySize = file.readInt()
+        val removed = file.readBoolean()
+        val valueSize = if (removed) 0 else file.readInt()
+        val bytes = new Array[Byte](keySize)
+        bytesRead += file.read(bytes)
+        val key = new String(bytes)
+        index.put(key, new Index(file, pos, removed))
+        file.seek(file.getFilePointer + valueSize)
       }
     } catch {
       case e: Throwable => throw new ReindexException()
-    } finally {
-      dbFile.close()
     }
   }
+
+  def reIndex() {
+    index.clear()
+    files.foreach(indexFile(_))
+  }
+}
+
+class Index(val file: RandomAccessFile, val offset: Long, val removed: Boolean) {
 }

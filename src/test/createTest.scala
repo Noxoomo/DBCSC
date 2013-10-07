@@ -16,5 +16,6 @@ for (line <- Source.fromFile("data").getLines()) {
     i += 1
   }
 }
+writer.write("quit\n")
 writer.flush()
 writer.close()

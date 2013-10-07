@@ -4,37 +4,36 @@ import java.io.{FileWriter, BufferedWriter}
 import Utils.FileUtils._
 
 /**
-Commit log — if db crashed during write => restore from commit log
-  commit log stores only insert/update operations: it place where in db should be key-value
+Commit log — if da crashed during write => restore from commit log
+  commit log stores only insert/update operations: it place where in da should be key-value
   */
 class CommitLog(dir: String) {
-  val writer = new BufferedWriter(new FileWriter(dir + CommitLog.fileName))
-  val remove = new BufferedWriter(new FileWriter(dir + CommitLog.fileName + ".remove"))
+  val writer = new BufferedWriter(new FileWriter(dir + CommitLog.fileName, true))
 
-  def write(key: String, value: String, index: Long) {
-    writer.write(("%s\n%d %d %d\n%s").format(key, index, key.length, value.length, value))
+
+  def insert(key: String, value: String) {
+    writer.write(("%s\n%d\n%s\n").format(key, value.length, value))
     writer.flush()
   }
 
-  def remove(index: Long) {
-    remove.write(index + "\n")
-    remove.flush()
+  def remove(key: String) {
+    writer.write("%s->\n".format(key))
+    writer.flush()
   }
+
 
   def close() {
     writer.close()
-    remove.close()
-    removeFile(dir + CommitLog.fileName)
-    removeFile(dir + CommitLog.fileName + ".remove")
+    CommitLog.removeCommitLog(dir)
   }
 
 }
 
 object CommitLog {
-  def remove(dir: String) {
+  def removeCommitLog(dir: String) {
     removeFile(dir + fileName)
-    removeFile(dir + fileName + ".remove")
   }
+
 
   val fileName = "commits"
 }

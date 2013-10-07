@@ -25,12 +25,15 @@ class RouterTest extends FlatSpec with Matchers {
   val timeout = Timeout(1000)
   val system = ActorSystem("RouterTest")
   val dbDir = "src/test/resources/distributedTests/ThreeNodeTest/"
+  removeFolder(dbDir + "node1/db")
+  removeFolder(dbDir + "node2/db")
+  removeFolder(dbDir + "node3/db")
   removeFolder(dbDir + "node1")
   removeFolder(dbDir + "node2")
   removeFolder(dbDir + "node3")
-  val node1 = system.actorOf(server.Nodes.Node.props(dbDir + "node1"))
-  val node2 = system.actorOf(server.Nodes.Node.props(dbDir + "node2"))
-  val node3 = system.actorOf(server.Nodes.Node.props(dbDir + "node3"))
+  val node1 = system.actorOf(server.Nodes.Node.props(dbDir + "node1/"))
+  val node2 = system.actorOf(server.Nodes.Node.props(dbDir + "node2/"))
+  val node3 = system.actorOf(server.Nodes.Node.props(dbDir + "node3/"))
   val nodes = Array(node1.path.toString, node2.path.toString, node3.path.toString)
   val router = system.actorOf(client.Router.props(nodes), "router")
 
@@ -50,6 +53,7 @@ class RouterTest extends FlatSpec with Matchers {
       val futureGet = router.ask(Get(keyPre + id.toString))(5 seconds)
       Await.result(futureGet, timeout.duration) should be(Answer(keyPre + id.toString, valuePre + id.toString))
     }
+    system.shutdown()
 
   }
 

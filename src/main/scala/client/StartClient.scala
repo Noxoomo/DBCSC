@@ -1,9 +1,13 @@
 package client
 
-import akka.actor.ActorSystem
+import akka.actor._
 import scala.io.Source
 import Utils.FileUtils._
 import com.typesafe.config.ConfigFactory
+import akka.pattern.ask
+import scala.concurrent.duration._
+import scala.concurrent.{TimeoutException, Await}
+import akka.util.Timeout
 
 /**
  * User: Vasily
@@ -15,6 +19,8 @@ object StartClient {
   def loadNodes(path: String) = {
     (for (line <- Source.fromFile(path).getLines()) yield line).toArray
   }
+
+  val timeout = new Timeout(5000)
 
   def main(args: Array[String]) {
 
@@ -28,10 +34,25 @@ object StartClient {
     val customConf = ConfigFactory.parseString(conf)
     val system = ActorSystem("Client", ConfigFactory.load(customConf)) //,ConfigFactory.load(akkaConfig))
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
-    Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit").foreach(client ! _)
-    client ! "quit"
-    system.awaitTermination()
+    Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
+      .foreach(send(_, client))
+    val future = client.ask("quit")(5 seconds)
+    try {
+      Await.result(future, 5 seconds)
+    } catch {
+      case timeout: TimeoutException => println("shutdown timeout")
+    }
 
+    system.shutdown()
+
+  }
+
+  def send(str: String, client: ActorRef) {
+    try {
+      Await.result(client.ask(str)(5 seconds), timeout.duration)
+    } catch {
+      case e: TimeoutException =>
+    }
   }
 
 }

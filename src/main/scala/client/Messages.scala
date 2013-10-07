@@ -36,4 +36,7 @@ object Messages {
 
   case class Close()
 
+  case class Busy()
+
+
 }

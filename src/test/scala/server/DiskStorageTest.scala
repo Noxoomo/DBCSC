@@ -12,7 +12,8 @@ class DiskStorageTest extends FlatSpec with Matchers {
 
   "DiskStorage" should "create OnDiskStorage and implement CRUD" in {
     //clean(filename)
-    val path = "src/test/resources/test01DiskStorage"
+    val path = "src/test/resources/test01DiskStorage/"
+    removeFolder(path + "db/")
     removeFolder(path)
     val db = new DiskStorage(path)
     db.insert("key1", "value1")
@@ -37,8 +38,10 @@ class DiskStorageTest extends FlatSpec with Matchers {
     val keyPre = "key-"
     val valuePre = "some value "
     //val testLimit = 1000000
-    val testLimit = 100000
+    val testLimit = 10000
+    removeFolder(path + "db/")
     removeFolder(path)
+
     val startTime = System.currentTimeMillis()
     val db = new DiskStorage(path)
 
@@ -52,38 +55,29 @@ class DiskStorageTest extends FlatSpec with Matchers {
     print(endTime - startTime)
   }
 
-  "DiskStorage" should "work after clean" in {
+  "DiskStorage" should "recover from commit-log" in {
     val path = "src/test/resources/testDiskStorageClean/"
-    removeFile(path + "db")
-    removeFile(path + "index")
-    touch(path + "clean.lck")
-    copyFile(path + "db.test", path + "db")
-    copyFile(path + "index.test", path + "index")
+    removeFolder(path + "db/")
+    createFolder(path + "db/")
+    removeFile(path + "commits")
+    copyFile(path + "commits.test", path + "commits")
+    copyFile(path + "1381129040293", path + "db/1381129040293")
+
     val db = new DiskStorage(path)
     intercept[NoKeyFoundException] {
       db.get("key1")
     }
-    db.get("key2") should be("value-2")
-    db.get("key3") should be("value-3")
-    db.get("key4") should be("value4")
-    db.close()
-  }
-
-
-  "DiskStorage" should "reindex in existing Database" in {
-    val path = "src/test/resources/testExistDatabase"
-    touch(path + "/index.lck")
-    removeFile(path + "/index")
-    val db = new DiskStorage(path)
-    db.get("key1") should be("value1")
     db.get("key2") should be("value2")
     db.get("key3") should be("value3")
     db.get("key4") should be("value4")
     db.close()
   }
+
+
+
   "DiskStorage" should "read from existing Database" in {
     //clean(filename)
-    val path = "src/test/resources/testExistDatabase"
+    val path = "src/test/resources/testExistDatabase/"
     val db = new DiskStorage(path)
     db.get("key1") should be("value1")
     db.get("key2") should be("value2")

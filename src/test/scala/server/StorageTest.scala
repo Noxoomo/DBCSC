@@ -12,6 +12,7 @@ class StorageTest extends FlatSpec with Matchers {
   "Storage" should "create storage and implement CRUD" in {
     //clean(filename)
     val path = "src/test/resources/test01Storage/"
+    removeFolder(path + "db/")
     removeFolder(path)
     val db = new Storage(path)
     db.insert("key1", "value1")
@@ -36,6 +37,7 @@ class StorageTest extends FlatSpec with Matchers {
     val valuePre = "some value "
     //val testLimit = 1000000
     val testLimit = 100000
+    removeFolder(path + "db/")
     removeFolder(path)
     val db = new Storage(path)
     for (i <- 0 to testLimit) {
@@ -47,7 +49,7 @@ class StorageTest extends FlatSpec with Matchers {
 
   "Storage" should "read from existing Database" in {
     //clean(filename)
-    val path = "src/test/resources/testExistDatabase"
+    val path = "src/test/resources/testExistDatabase/"
     val db = new Storage(path)
     db.get("key1") should be("value1")
     db.get("key2") should be("value2")

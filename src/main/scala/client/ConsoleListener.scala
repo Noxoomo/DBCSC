@@ -13,7 +13,8 @@ import akka.util.Timeout
  * Time: 14:36
  */
 class ConsoleListener(nodes: Array[String]) extends Actor {
-  val timeout = Timeout(1000)
+  val timeout = Timeout(5000)
+  val sleepTime = 250
   val router = context.actorOf(Router.props(nodes), "route")
 
   def getResult(result: Any): String = {
@@ -27,10 +28,18 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
   }
 
   override def receive: Actor.Receive = {
+
     case null =>
     case "quit" => {
-      router ! Close()
+      val future = router.ask(Close())(5 seconds)
+      try {
+        Await.result(future, timeout.duration)
+      } catch {
+        case e: TimeoutException =>
+      }
       context.stop(self)
+      sender ! OK("stopped")
+
     }
     case msg: String => {
       val request = msg.split(" ", 2)
@@ -40,6 +49,7 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
           try {
             val result = Await.result(future, timeout.duration)
             println(getResult(result))
+            sender ! result
           } catch {
             case timeout: TimeoutException => println("Await timeout")
           }
@@ -48,6 +58,7 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
           val future = router.ask(Remove(request(1)))(5 seconds)
           try {
             val result = Await.result(future, timeout.duration)
+            sender ! result
             println(getResult(result))
           } catch {
             case timeout: TimeoutException => println("Await timeout")
@@ -59,6 +70,7 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
           try {
             val result = Await.result(future, timeout.duration)
             println(getResult(result))
+            sender ! result
           } catch {
             case timeout: TimeoutException => println("Await timeout")
           }
@@ -68,6 +80,7 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
           val future = router.ask(Update(params(0), params(1)))(5 seconds)
           try {
             val result = Await.result(future, timeout.duration)
+            sender ! result
             println(getResult(result))
           } catch {
             case timeout: TimeoutException => println("Await timeout")
@@ -80,7 +93,6 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
     }
     case _ =>
   }
-
 
 }
 

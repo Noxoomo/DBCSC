@@ -15,15 +15,18 @@ import akka.util.Timeout
  */
 class Router(nodesInfo: Array[String]) extends Actor {
   val nodes = nodesInfo.map(x => context.actorSelection(x))
-  val timeout = new Timeout(1000)
+  val timeout = new Timeout(5000)
 
 
   override def receive: Actor.Receive = {
     case Close => {
       for (node <- nodes) {
-        node ! Close()
+        val future = node.ask(Close())(5 seconds)
+        Await.result(future, timeout.duration)
+
       }
       context.stop(self)
+      sender ! OK("stopped")
     }
     case Get(key) => {
       val node = getNodes(key)
