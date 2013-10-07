@@ -4,8 +4,8 @@ import java.io.{FileWriter, BufferedWriter}
 import Utils.FileUtils._
 
 /**
-Commit log — if da crashed during write => restore from commit log
-  commit log stores only insert/update operations: it place where in da should be key-value
+Commit log — if db crashed during write => restore from commit log
+  commit log stores only insert/update operations: it place where in db should be key-value
   */
 class CommitLog(dir: String) {
   val writer = new BufferedWriter(new FileWriter(dir + CommitLog.fileName, true))

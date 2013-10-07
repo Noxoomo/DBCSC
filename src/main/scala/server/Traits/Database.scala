@@ -18,7 +18,7 @@ trait Database {
 
   /**
    * if key exists returns value of this key, otherwise throws NoKeyFoundException
-   * @param key finds key in da and returns value
+   * @param key finds key in db and returns value
    * @throws NoKeyFoundException    if key doesn't exist
    *
    */
