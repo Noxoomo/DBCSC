@@ -22,7 +22,6 @@ class Node(private val nodeName: String) extends Actor {
 
 
     case Get(key) => {
-
       val response = if (storage contains key) Answer(key, storage.get(key))
       else NoKey(key)
       sender ! response
@@ -53,6 +52,7 @@ class Node(private val nodeName: String) extends Actor {
     }
     case Close() => {
       context.stop(self)
+      context.system.shutdown()
       sender ! OK("stopped")
     }
     case _ => sender ! Error("unknown command")

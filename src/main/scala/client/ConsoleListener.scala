@@ -31,15 +31,13 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
 
     case null =>
     case "quit" => {
-      val future = router.ask(Close())(5 seconds)
+      val future = router.ask(Close())(120 seconds)
       try {
-        Await.result(future, timeout.duration)
+        Await.result(future, Timeout(1200000).duration)
       } catch {
         case e: TimeoutException =>
       }
-      context.stop(self)
       sender ! OK("stopped")
-
     }
     case msg: String => {
       val request = msg.split(" ", 2)

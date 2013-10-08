@@ -6,6 +6,7 @@ import akka.pattern.ask
 import scala.concurrent.duration._
 import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
+import scala.util.Random
 
 
 /**
@@ -16,17 +17,16 @@ import akka.util.Timeout
 class Router(nodesInfo: Array[String]) extends Actor {
   val nodes = nodesInfo.map(x => context.actorSelection(x))
   val timeout = new Timeout(5000)
+  val random = new Random()
 
 
   override def receive: Actor.Receive = {
     case Close => {
-      for (node <- nodes) {
-        val future = node.ask(Close())(5 seconds)
+      val futures = for (node <- nodes) yield node.ask(Close())(5 seconds)
+      for (future <- futures) {
         Await.result(future, timeout.duration)
-
       }
-      context.stop(self)
-      sender ! OK("stopped")
+      sender ! OK("quit")
     }
     case Get(key) => {
       val node = getNodes(key)
@@ -54,10 +54,12 @@ class Router(nodesInfo: Array[String]) extends Actor {
       try {
         val result = Await.result(future, timeout.duration)
         sender ! result
+
       } catch {
         case timeout: TimeoutException => sender ! Error("Timeout")
       }
     }
+
     case Update(key, value) => {
       val node = getNodes(key)
       val future = node.ask(Update(key, value))(5 seconds)

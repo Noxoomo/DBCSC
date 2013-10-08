@@ -54,18 +54,28 @@ class DiskStorageMaintains(dbPath: String) {
     val filename = database + System.currentTimeMillis().toString
 
     //val file = new RandomAccessFile(filename, "rws")
+
     val file = new DataOutputStream(new FileOutputStream(filename))
-    for (key <- memory.getData.keySet) {
-      val value = memory.get(key)
-      file.writeInt(key.length)
-      file.writeBoolean(false)
-      file.writeInt(value.length)
-      file.write((key + value).getBytes())
-    }
-    for (key <- memory.getRemoved) {
-      file.writeInt(key.length)
-      file.writeBoolean(true)
-      file.write((key).getBytes())
+    val timestamp = System.currentTimeMillis()
+    val keys = ((memory.getData.keySet.union(memory.getRemoved)).toArray.sorted)
+    for (key <- keys) {
+      if (memory contains key) {
+        val value = memory.get(key)
+        val keyBytes = (key).getBytes()
+        val valueBytes = value.getBytes()
+        file.writeInt(keyBytes.length)
+        file.writeLong(timestamp)
+        file.writeBoolean(false)
+        file.write(keyBytes)
+        file.writeInt(valueBytes.length)
+        file.write(valueBytes)
+      } else {
+        val keyBytes = (key).getBytes()
+        file.writeInt(keyBytes.length)
+        file.writeLong(timestamp)
+        file.writeBoolean(true)
+        file.write(keyBytes)
+      }
     }
     file.flush();
     file.close()
@@ -78,6 +88,40 @@ class DiskStorageMaintains(dbPath: String) {
    */
   def clean(): List[RandomAccessFile] = merge(getFileList())
 
+  def merge(first: RandomAccessFile, second: RandomAccessFile): String = {
+    //first should be created before second
+    val firstReader = new Reader(first)
+    val secondReader = new Reader(second)
+    val filename = dbPath + System.currentTimeMillis().toString + ".merge"
+    val writer = new DataOutputStream(new FileOutputStream(filename))
+
+    firstReader.next()
+    secondReader.next()
+    while (firstReader.notEmpty || secondReader.notEmpty) {
+      if (!firstReader.notEmpty && secondReader.notEmpty) {
+        secondReader.write(writer)
+      } else if (!secondReader.notEmpty && firstReader.notEmpty) {
+        firstReader.write(writer)
+      }
+      else if (firstReader.current().removed)
+        firstReader.next()
+      else if (secondReader.current().removed) {
+        if (firstReader.current().key == secondReader.current().key)
+          firstReader.next()
+        secondReader.next()
+      }
+      else if (firstReader.current().key < secondReader.current().key) {
+        secondReader.write(writer)
+        secondReader.next()
+      }
+      else {
+        firstReader.write(writer)
+      }
+    }
+    writer.flush()
+    writer.close()
+    return filename
+  }
 
   def restore(): Memory = {
     if (!pathExists(commitsFilename)) new Memory

@@ -32,6 +32,19 @@ Cache:
 Database all operations proceed on disk, for fast access uses cache
 
 
+---
+index format:
+sorted by key keyLenKeyfileIdOffset array of bytes on disk
+
+merge databases:
+db1 & db2: all operations in db1 < operations in db2
+db should be keyLenKeyStatus(if status not removed =>  valueLenkeyvalue,else key)   sorted by key
+than we merge db1 and db2 to new file
+
+1) merge sort of indexes, prior to db2
+2) create new file for dbMerge
+
+
 
 
 

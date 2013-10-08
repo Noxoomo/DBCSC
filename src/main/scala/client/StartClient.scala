@@ -38,12 +38,12 @@ object StartClient {
       .foreach(send(_, client))
     val future = client.ask("quit")(5 seconds)
     try {
-      Await.result(future, 5 seconds)
+      Await.result(future, Timeout(10000000000).duration)
+      system.shutdown()
     } catch {
       case timeout: TimeoutException => println("shutdown timeout")
     }
-
-    system.shutdown()
+    system.awaitTermination()
 
   }
 
@@ -51,7 +51,7 @@ object StartClient {
     try {
       Await.result(client.ask(str)(5 seconds), timeout.duration)
     } catch {
-      case e: TimeoutException =>
+      case e: TimeoutException => println("request timeout")
     }
   }
 

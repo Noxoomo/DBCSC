@@ -16,9 +16,8 @@ import server.Traits.Database
 class DiskStorage(dbPath: String) extends Database {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
   private val maintainer = new DiskStorageMaintains(dbDir)
-  private val memoryLimit = 80 * 1024 * 1024L
+  private val memoryLimit = 100 * 1024 * 1024L
   private val files = maintainer.clean()
-  var busy = false
   if (!pathExists(dbDir)) createFolder(dbDir)
 
   private val memory = maintainer.restore()
@@ -45,45 +44,46 @@ class DiskStorage(dbPath: String) extends Database {
   }
 
   def insert(key: String, value: String) {
-    if (contains(key)) throw new KeyExistsException()
-    else {
-      commits.insert(key, value)
-      memory.insert(key, value)
-      if (memory.getMemoryUsage > memoryLimit) {
-        busy = true
-        flush()
-        busy = false
-      }
+    //if (contains(key)) throw new KeyExistsException()
+    //else {
+    commits.insert(key, value)
+    memory.insert(key, value)
+    if (memory.getMemoryUsage > memoryLimit) {
+      flush()
     }
+    //}
   }
 
 
   def get(key: String) = {
     if (memory contains (key)) memory.get(key)
     else if (memory.wasRemoved(key)) throw new NoKeyFoundException()
-    else if (index contains (key)) {
+    else {
       val ind = index.get(key)
       ind.file.seek(ind.offset)
       try {
         val keyLen = ind.file.readInt()
+        // val keyBytes = new Array[Byte](keyLen)
+        ind.file.readLong() //timestamp
+        ind.file.seek(ind.file.getFilePointer)
         val removed = ind.file.readBoolean()
         if (removed) throw new NoKeyFoundException
         val valueLen = ind.file.readInt()
-        val bytes = new Array[Byte](keyLen + valueLen)
-        ind.file.read(bytes)
-        val str = new String(bytes)
-        str.substring(keyLen)
+        val valueBytes = new Array[Byte](valueLen)
+        ind.file.read(valueBytes)
+        new String(valueBytes)
       } catch {
         case e: IOException => throw new KeyReadException()
       }
-    } else throw new NoKeyFoundException
+    }
   }
 
 
   def update(key: String, value: String) {
-    if (!contains(key)) throw new NoKeyFoundException()
-    remove(key)
     insert(key, value)
+    // if (!contains(key)) throw new NoKeyFoundException()
+    //remove(key)
+    //insert(key, value)
   }
 
 
@@ -94,7 +94,6 @@ class DiskStorage(dbPath: String) extends Database {
   }
 
   def close() {
-    busy = true
     maintainer.flush(memory)
     commits.close()
   }

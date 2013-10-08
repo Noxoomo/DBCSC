@@ -6,6 +6,7 @@ import scala.util.Random
 
 import Utils.FileUtils._
 import server.OnDiskStorage.DiskStorage
+import java.io.{FileReader, BufferedReader}
 
 class DiskStorageTest extends FlatSpec with Matchers {
   val rand = new Random()
@@ -85,6 +86,21 @@ class DiskStorageTest extends FlatSpec with Matchers {
     db.get("key4") should be("value4")
     intercept[NoKeyFoundException] {
       db.get("ssss")
+    }
+    db.close()
+  }
+
+  "DiskStorage" should "handling big data" in {
+    val path = "src/test/resources/BigData/"
+    val db = new DiskStorage(path)
+    val testLimit = 1000000
+    val value = (new BufferedReader(new FileReader(path + "testline"))).readLine()
+    for (i <- 0 to testLimit) {
+      db.insert(i.toString, value + i.toString)
+    }
+
+    for (i <- 0 to testLimit) {
+      db.get(i.toString) should be(value + i.toString)
     }
     db.close()
   }

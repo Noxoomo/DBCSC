@@ -22,7 +22,6 @@ class Storage(dbPath: String) extends Database {
     dbStorage.insert(key, value)
   }
 
-  def busy = dbStorage.busy
 
   def get(key: String) = {
     // if (dbMemory contains key) dbMemory get key
