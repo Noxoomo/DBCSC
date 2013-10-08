@@ -1,9 +1,9 @@
 package server.Nodes
 
-import server.Storage
 import akka.actor.{Props, Actor}
 import client.Messages._
 import scala.util.Random
+import server.OnDiskStorage.{NothingFound, Value, DiskStorage}
 
 
 /**
@@ -14,39 +14,30 @@ import scala.util.Random
 //node name = path to node working dir
 class Node(private val nodeName: String) extends Actor {
   private val dbPath = if (nodeName.endsWith("/")) nodeName else nodeName + "/"
-  private val storage = new Storage(dbPath)
+  private val storage = new DiskStorage(dbPath)
   private val rand = new Random()
 
 
   def receive = {
     case Get(key, id) => {
-      val response = if (storage contains key) Answer(key, storage.get(key), id)
-      else NoKey(key, id)
-      sender ! response
+      val storageResponse = storage.get(key)
+      storageResponse match {
+        case Value(value) => sender ! Answer(key, value, id)
+        case NothingFound() => sender ! NoKey(key, id)
+      }
     }
 
     case Remove(key, id) => {
-      if (storage contains key) {
-        storage.remove(key)
-        sender ! Removed(done = true, id)
-      }
-      else sender ! Removed(done = false, id)
+      storage.remove(key)
+      sender ! Removed(done = true, id)
     }
     case Insert(key: String, value: String, id) => {
-      if (storage contains key) {
-        sender ! Error("Key already exists", id)
-      } else {
-        storage.insert(key, value)
-        sender ! OK("key inserted", id)
-      }
+      storage.insert(key, value)
+      sender ! OK("key inserted", id)
     }
     case Update(key: String, value: String, id) => {
-      if (!storage.contains(key)) {
-        sender ! NoKey(key, id)
-      } else {
-        storage.update(key, value)
-        sender ! OK("Key updated", id)
-      }
+      storage.insert(key, value)
+      sender ! OK("Key updated", id)
     }
     case Close() => {
       sender ! OK("Got message", System.currentTimeMillis())

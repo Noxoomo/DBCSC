@@ -16,47 +16,29 @@ class DiskStorageMaintains(dbPath: String) {
   if (!pathExists(database)) createFolder(database)
 
   def getFileList() = new File(database).listFiles()
-    .filter(x => !x.getName.endsWith(".merge")).sortBy(x => x.getName.toLong)
+    .filter(x => !(x.isDirectory || x.getName.endsWith(".index"))).sortBy(x => x.getName.toLong)
 
-  def merge(files: Array[File]): List[RandomAccessFile] = {
-    if (files.length > 1) {
-      val readers = (for (file <- files) yield new RandomAccessFile(file.getAbsolutePath, "r")).toList
-      val filename = database + System.currentTimeMillis().toString
-      val file = new RandomAccessFile(filename + ".merge", "rw")
-      for (index <- new KeyIndex(readers).index.values) {
-        if (!index.removed) {
-          index.file.seek(index.offset)
-          val keyLen = index.file.readInt()
-          val removed = index.file.readBoolean()
-          val valueLen = index.file.readInt()
-          val bytes = new Array[Byte](keyLen + valueLen)
-          index.file.read(bytes)
-          file.writeInt(keyLen)
-          file.writeBoolean(removed)
-          file.writeInt(valueLen)
-          file.write(bytes)
-        }
-      }
-      file.close()
-      new File(filename + ".merge").renameTo(new File(filename))
-      for (file <- files) removeFile(file.getAbsoluteFile.toString)
-      List(new RandomAccessFile(filename, "r"))
-    }
-    else if (files.length == 1) {
-      List(new RandomAccessFile(files(0), "r"))
-    }
-    else {
-      null
+  def getOldIndexList() = new File(database).listFiles().filter(x => !x.isDirectory && x.getName.endsWith(".index"))
+
+  private def merge(files: Array[File]): String = {
+    if (files.length == 1) {
+      files(0).getAbsolutePath
+    } else if (files.length == 2) {
+      merge(files(0).getAbsolutePath, files(1).getAbsolutePath)
+    } else {
+      val mid: Int = files.length / 2
+      val left = merge(files.slice(0, mid))
+      val right = merge(files.slice(mid, files.length))
+      val result = merge(left, right)
+      removeFile(left)
+      removeFile(right)
+      result
     }
   }
 
-  def flush(memory: Memory): RandomAccessFile = {
+  def flush(memory: Memory): String = {
     val filename = database + System.currentTimeMillis().toString
-
-    //val file = new RandomAccessFile(filename, "rws")
-
     val file = new DataOutputStream(new FileOutputStream(filename))
-    val timestamp = System.currentTimeMillis()
     val keys = ((memory.getData.keySet.union(memory.getRemoved)).toArray.sorted)
     for (key <- keys) {
       if (memory contains key) {
@@ -75,22 +57,35 @@ class DiskStorageMaintains(dbPath: String) {
         file.write(keyBytes)
       }
     }
-    file.flush();
+    file.flush()
     file.close()
-
-    new RandomAccessFile(filename, "r")
+    filename
   }
 
   /**
    * recreate database (removes old keys and values)
    */
-  def clean(): List[RandomAccessFile] = merge(getFileList())
+  // def clean(): List[RandomAccessFile] = merge(getFileList())
+  def garbageCollect(): RandomAccessFile = {
+    val oldFiles = getFileList()
+    val filename = merge(oldFiles)
+    renameFile(filename, database + System.currentTimeMillis())
+    for (file <- oldFiles) {
+      removeFile(file.getAbsolutePath)
+    }
+    for (file <- getOldIndexList())
+      removeFile(file.getAbsolutePath)
+    FileIndex.index(filename)
+    new RandomAccessFile(filename, "r")
+  }
 
-  def merge(first: RandomAccessFile, second: RandomAccessFile): String = {
+  private def merge(firstName: String, secondName: String): String = {
+    val first = new RandomAccessFile(firstName, "r")
+    val second = new RandomAccessFile(secondName, "r")
     //first should be created before second
     val firstReader = new Reader(first)
     val secondReader = new Reader(second)
-    val filename = dbPath + System.currentTimeMillis().toString + ".merge"
+    val filename = dbPath + "merge/" + System.currentTimeMillis().toString
     val writer = new DataOutputStream(new FileOutputStream(filename))
 
     firstReader.next()
