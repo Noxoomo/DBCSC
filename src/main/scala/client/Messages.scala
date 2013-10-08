@@ -19,10 +19,9 @@ object Messages {
   case class Insert(key: String, value: String, id: Long) extends Commands {
   }
 
-  case class Remove(key: String, id: Long) extends Commands {
-  }
+  case class Remove(key: String, id: Long) extends Commands
 
-  case class Response()
+  abstract class Response()
 
   case class Removed(done: Boolean, id: Long) extends Response
 
@@ -39,6 +38,5 @@ object Messages {
   case class getQuit() extends Response
 
   case class ConsoleMessage(message: String, id: Long)
-
 
 }

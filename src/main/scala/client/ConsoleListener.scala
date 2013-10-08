@@ -32,7 +32,7 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
   override def receive: Actor.Receive = {
 
     case null =>
-    case getQuit => {
+    case getQuit() => {
       quit += 1
       if (quit == nodes.length) {
         context.system.shutdown()

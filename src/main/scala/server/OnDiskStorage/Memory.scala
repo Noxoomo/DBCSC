@@ -1,6 +1,5 @@
 package server.OnDiskStorage
 
-import server.Traits.Database
 import server.Exception.{NoKeyFoundException, KeyExistsException}
 
 /**
@@ -8,7 +7,7 @@ import server.Exception.{NoKeyFoundException, KeyExistsException}
  * Date: 06.10.13
  * Time: 22:07
  */
-class Memory extends Database {
+class Memory {
   private var data = Map.empty[String, String] //new mutable.HashMap[String, String]
 
   private var removed = Set[String]()

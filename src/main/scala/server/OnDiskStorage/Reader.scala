@@ -25,7 +25,7 @@ class Reader(file: RandomAccessFile) {
       entry.removed = file.readBoolean()
       val keyBytes = new Array[Byte](keyLen)
       file.read(keyBytes)
-      val entry.key = new String(keyBytes)
+      entry.key = new String(keyBytes)
 
       if (!entry.removed) {
         val valueLen = file.readInt()

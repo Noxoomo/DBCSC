@@ -47,14 +47,16 @@ class RouterTest extends FlatSpec with Matchers {
     val testLimit = 10000
 
     for (i <- 0 to testLimit) {
-      val future = router.ask(Insert(keyPre + i.toString, valuePre + i.toString))(5 seconds)
-      Await.result(future, timeout.duration) should be(OK("key inserted"))
+      val future = router.ask(Insert(keyPre + i.toString, valuePre + i.toString, i))(5 seconds)
+      Await.result(future, timeout.duration) should be(OK("key inserted", i))
+
+    }
+    for (i <- 0 to testLimit) {
       val id = rand.nextInt(i + 1)
-      val futureGet = router.ask(Get(keyPre + id.toString))(5 seconds)
-      Await.result(futureGet, timeout.duration) should be(Answer(keyPre + id.toString, valuePre + id.toString))
+      val futureGet = router.ask(Get(keyPre + id.toString, i))(5 seconds)
+      Await.result(futureGet, timeout.duration) should be(Answer(keyPre + id.toString, valuePre + id.toString, i))
     }
     system.shutdown()
-
   }
 
 

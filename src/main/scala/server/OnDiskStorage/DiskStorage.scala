@@ -4,8 +4,8 @@ import server.Exception._
 import java.io._
 
 import Utils.FileUtils._
-import server.Traits.Database
 import java.nio.MappedByteBuffer
+import server.OnDiskStorage.DiskStatus._
 
 /**
  * Database Storage Format:
@@ -14,7 +14,7 @@ import java.nio.MappedByteBuffer
  *
  */
 
-class DiskStorage(dbPath: String) extends Database {
+class DiskStorage(dbPath: String) {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
   private val maintainer = new DiskStorageMaintains(dbDir)
   private val memoryLimit = 100 * 1024 * 1024L
@@ -53,13 +53,6 @@ class DiskStorage(dbPath: String) extends Database {
     }
   }
 
-  private case class DiskLookupResult()
-
-  private case class FoundValue(value: String) extends DiskLookupResult
-
-  private case class WasRemoved() extends DiskLookupResult
-
-  private case class NoKeyFound() extends DiskLookupResult
 
   private def look(lookupkey: String, files: List[RandomAccessFile], index: List[MappedByteBuffer]): DiskLookupResult = {
     if (index.isEmpty) NoKeyFound()
@@ -93,18 +86,17 @@ class DiskStorage(dbPath: String) extends Database {
       }
       proceed(toLook)
     }
+  }
 
-
-    def get(key: String): StorageResponse = {
-      if (memory contains (key)) Value(memory.get(key))
-      else if (memory.wasRemoved(key)) NothingFound()
-      else {
-        val result = look(key, files, index)
-        result match {
-          case FoundValue(value) => Value(value)
-          case WasRemoved => NothingFound()
-          case NoKeyFound => NothingFound()
-        }
+  def get(key: String): StorageResponse = {
+    if (memory contains (key)) Value(memory.get(key))
+    else if (memory.wasRemoved(key)) NothingFound()
+    else {
+      val result = look(key, files, index)
+      result match {
+        case FoundValue(value) => Value(value)
+        case WasRemoved() => NothingFound()
+        case NoKeyFound() => NothingFound()
       }
     }
   }
@@ -130,8 +122,3 @@ class DiskStorage(dbPath: String) extends Database {
   }
 }
 
-case class StorageResponse()
-
-case class Value(value: String) extends StorageResponse
-
-case class NothingFound() extends StorageResponse

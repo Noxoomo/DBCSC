@@ -29,23 +29,23 @@ class NodesTest extends FlatSpec with Matchers {
     val node = system.actorOf(server.Nodes.Node.props(dbDir))
 
     //key1
-    val future1 = node.ask(Get("key1"))(5 seconds)
+    val future1 = node.ask(Get("key1", 1))(5 seconds)
     val result1 = Await.result(future1, timeout.duration)
-    result1 should be(Answer("key1", "value1"))
+    result1 should be(Answer("key1", "value1", 1))
     //key2
-    val future2 = node.ask(Get("key2"))(5 seconds)
+    val future2 = node.ask(Get("key2", 2))(5 seconds)
     val result2 = Await.result(future2, timeout.duration)
-    result2 should be(Answer("key2", "value2"))
+    result2 should be(Answer("key2", "value2", 2))
     //key1
-    val future3 = node.ask(Get("key3"))(5 seconds)
+    val future3 = node.ask(Get("key3", 3))(5 seconds)
     val result3 = Await.result(future3, timeout.duration)
-    result3 should be(Answer("key3", "value3"))
+    result3 should be(Answer("key3", "value3", 3))
 
 
     //non-exists key
-    val future = node.ask(Get("non-existing key"))(5 seconds)
+    val future = node.ask(Get("non-existing key", 4))(5 seconds)
     val result = Await.result(future, timeout.duration)
-    result should be(NoKey("non-existing key"))
+    result should be(NoKey("non-existing key", 4))
     system.shutdown()
   }
 
@@ -63,12 +63,15 @@ class NodesTest extends FlatSpec with Matchers {
     //val testLimit = 1000000
     val testLimit = 1000000
     for (i <- 0 to testLimit) {
-      val future = node.ask(Insert(keyPre + i.toString, valuePre + i.toString))(5 seconds)
+      val future = node.ask(Insert(keyPre + i.toString, valuePre + i.toString, i))(5 seconds)
       val result = Await.result(future, timeout.duration)
-      result should be(OK("key inserted"))
+      result should be(OK("key inserted", i))
+
+    }
+    for (i <- 0 to testLimit) {
       val id = rand.nextInt(i + 1)
-      val futureGet = node.ask(Get(keyPre + id.toString))(5 seconds)
-      Await.result(futureGet, timeout.duration) should be(Answer(keyPre + id.toString, valuePre + id.toString))
+      val futureGet = node.ask(Get(keyPre + id.toString, i))(5 seconds)
+      Await.result(futureGet, timeout.duration) should be(Answer(keyPre + id.toString, valuePre + id.toString, i))
     }
     node ! Close()
 

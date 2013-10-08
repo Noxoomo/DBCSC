@@ -19,8 +19,8 @@ class Router(nodesInfo: Array[String]) extends Actor {
 
 
   override def receive: Actor.Receive = {
-    case Response() => {
-      context.parent ! Response
+    case response: Response => {
+      context.parent ! response
     }
     case Close => {
       for (node <- nodes) node ! Close()

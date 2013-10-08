@@ -1,9 +1,11 @@
 package server
 
 import server.Exception.{DataBaseOpenException, NoKeyFoundException, KeyRemoveException, KeyExistsException}
+import server.OnDiskStorage.DiskStorage
+import server.OnDiskStorage.DiskStatus.{Value, NothingFound}
 
 class Server(dbPath: String) {
-  val db = new Storage(dbPath)
+  val db = new DiskStorage(dbPath)
 
 
   def processLine(line: String): String = {
@@ -34,7 +36,13 @@ class Server(dbPath: String) {
           db.remove(request(1))
           "removed"
         }
-        case "get" => db.get(request(1))
+        case "get" => {
+          val result = db.get(request(1))
+          result match {
+            case NothingFound() => "No key found"
+            case Value(value) => value
+          }
+        }
         case _ => "unknown command"
       }
     } catch {

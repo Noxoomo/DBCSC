@@ -3,7 +3,8 @@ package server.Nodes
 import akka.actor.{Props, Actor}
 import client.Messages._
 import scala.util.Random
-import server.OnDiskStorage.{NothingFound, Value, DiskStorage}
+import server.OnDiskStorage.DiskStorage
+import server.OnDiskStorage.DiskStatus.{NothingFound, Value}
 
 
 /**
