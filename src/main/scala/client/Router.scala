@@ -1,10 +1,8 @@
 package client
 
 import Messages._
+import Messages.Response
 import akka.actor.{Props, Actor}
-import akka.pattern.ask
-import scala.concurrent.duration._
-import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
 import scala.util.Random
 
@@ -21,56 +19,32 @@ class Router(nodesInfo: Array[String]) extends Actor {
 
 
   override def receive: Actor.Receive = {
+    case Response() => {
+      context.parent ! Response
+    }
     case Close => {
-      val futures = for (node <- nodes) yield node.ask(Close())(5 seconds)
-      for (future <- futures) {
-        Await.result(future, timeout.duration)
-      }
-      sender ! OK("quit")
-    }
-    case Get(key) => {
-      val node = getNodes(key)
-      val future = node.ask(Get(key))(5 seconds)
-      try {
-        val result = Await.result(future, timeout.duration)
-        sender ! result
-      } catch {
-        case timeout: TimeoutException => sender ! Error("Timeout")
-      }
-    }
-    case Remove(key) => {
-      val node = getNodes(key)
-      val future = node.ask(Remove(key))(5 seconds)
-      try {
-        val result = Await.result(future, timeout.duration)
-        sender ! result
-      } catch {
-        case timeout: TimeoutException => sender ! Error("Timeout")
-      }
-    }
-    case Insert(key, value) => {
-      val node = getNodes(key)
-      val future = node.ask(Insert(key, value))(5 seconds)
-      try {
-        val result = Await.result(future, timeout.duration)
-        sender ! result
-
-      } catch {
-        case timeout: TimeoutException => sender ! Error("Timeout")
-      }
+      for (node <- nodes) node ! Close()
     }
 
-    case Update(key, value) => {
+    case Get(key, id) => {
       val node = getNodes(key)
-      val future = node.ask(Update(key, value))(5 seconds)
-      try {
-        val result = Await.result(future, timeout.duration)
-        sender ! result
-      } catch {
-        case timeout: TimeoutException => sender ! Error("timeout")
-      }
+      node ! Get(key, id)
+
     }
-    case _ => sender ! Error("unknown command")
+    case Remove(key, id) => {
+      val node = getNodes(key)
+      node ! Remove(key, id)
+    }
+    case Insert(key, value, id) => {
+      val node = getNodes(key)
+      node ! Insert(key, value, id)
+    }
+
+    case Update(key, value, id) => {
+      val node = getNodes(key)
+      node ! Update(key, value, id)
+    }
+    case _ => sender ! Error("unknown command", -1)
   }
 
 

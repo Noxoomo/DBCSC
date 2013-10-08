@@ -5,6 +5,9 @@ import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import scala.io.Source
 
+import akka.pattern.gracefulStop
+import akka.util.Timeout
+
 
 /**
  * User: Vasily
@@ -29,6 +32,7 @@ object StartNode extends App {
 
   val node = system.actorOf(Node.props(nodeName), "Storage")
   Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
+  gracefulStop(node, new Timeout(10000).duration)
   system.awaitTermination()
 
 }

@@ -19,43 +19,39 @@ class Node(private val nodeName: String) extends Actor {
 
 
   def receive = {
-
-
-    case Get(key) => {
-      val response = if (storage contains key) Answer(key, storage.get(key))
-      else NoKey(key)
+    case Get(key, id) => {
+      val response = if (storage contains key) Answer(key, storage.get(key), id)
+      else NoKey(key, id)
       sender ! response
     }
 
-    case Remove(key) => {
+    case Remove(key, id) => {
       if (storage contains key) {
         storage.remove(key)
-        sender ! Removed(done = true)
+        sender ! Removed(done = true, id)
       }
-      else sender ! Removed(done = false)
+      else sender ! Removed(done = false, id)
     }
-    case Insert(key: String, value: String) => {
+    case Insert(key: String, value: String, id) => {
       if (storage contains key) {
-        sender ! Error("Key already exists")
+        sender ! Error("Key already exists", id)
       } else {
         storage.insert(key, value)
-        sender ! OK("key inserted")
+        sender ! OK("key inserted", id)
       }
     }
-    case Update(key: String, value: String) => {
+    case Update(key: String, value: String, id) => {
       if (!storage.contains(key)) {
-        sender ! NoKey(key)
+        sender ! NoKey(key, id)
       } else {
         storage.update(key, value)
-        sender ! OK("Key updated")
+        sender ! OK("Key updated", id)
       }
     }
     case Close() => {
-      context.stop(self)
-      context.system.shutdown()
-      sender ! OK("stopped")
+      sender ! OK("Got message", System.currentTimeMillis())
     }
-    case _ => sender ! Error("unknown command")
+    case _ => sender ! Error("unknown command", -1)
   }
 
   override def postStop() {

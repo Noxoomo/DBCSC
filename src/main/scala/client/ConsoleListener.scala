@@ -2,9 +2,6 @@ package client
 
 import Messages._
 import akka.actor.{Props, Actor}
-import akka.pattern.ask
-import scala.concurrent.duration._
-import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
 
 /**
@@ -16,73 +13,50 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
   val timeout = Timeout(5000)
   val sleepTime = 250
   val router = context.actorOf(Router.props(nodes), "route")
+  var quit = 0
+
+  def resultPre(id: Long) = "For request %d response is ".format(id)
 
   def getResult(result: Any): String = {
     result match {
-      case Removed(done) => if (done) "removed" else "some error"
-      case Answer(key, value) => "for " + key + " last record is " + value
-      case OK(text) => text
-      case Error(key) => "Error " + key
-      case NoKey(key) => "No key found " + key
+      case Removed(done, id) => resultPre(id) + {
+        if (done) "removed" else "some error"
+      }
+      case Answer(key, value, id) => resultPre(id) + "for " + key + " last record is " + value
+      case OK(text, id) => resultPre(id) + text
+      case Error(key, id) => resultPre(id) + "Error " + key
+      case NoKey(key, id) => resultPre(id) + "No key found " + key
     }
   }
 
   override def receive: Actor.Receive = {
 
     case null =>
-    case "quit" => {
-      val future = router.ask(Close())(120 seconds)
-      try {
-        Await.result(future, Timeout(1200000).duration)
-      } catch {
-        case e: TimeoutException =>
+    case getQuit => {
+      quit += 1
+      if (quit == nodes.length) {
+        context.system.shutdown()
       }
-      sender ! OK("stopped")
     }
-    case msg: String => {
+    case "quit" => {
+      router ! Close()
+    }
+    case ConsoleMessage(msg, id) => {
       val request = msg.split(" ", 2)
       request(0) match {
         case "get" => {
-          val future = router.ask(Get(request(1)))(5 seconds)
-          try {
-            val result = Await.result(future, timeout.duration)
-            println(getResult(result))
-            sender ! result
-          } catch {
-            case timeout: TimeoutException => println("Await timeout")
-          }
+          router ! Get(request(1), id)
         }
         case "remove" => {
-          val future = router.ask(Remove(request(1)))(5 seconds)
-          try {
-            val result = Await.result(future, timeout.duration)
-            sender ! result
-            println(getResult(result))
-          } catch {
-            case timeout: TimeoutException => println("Await timeout")
-          }
+          router ! Remove(request(1), id)
         }
         case "insert" => {
           val params = request(1).split("->", 2)
-          val future = router.ask(Insert(params(0), params(1)))(5 seconds)
-          try {
-            val result = Await.result(future, timeout.duration)
-            println(getResult(result))
-            sender ! result
-          } catch {
-            case timeout: TimeoutException => println("Await timeout")
-          }
+          router ! Insert(params(0), params(1), id)
         }
         case "update" => {
           val params = request(1).split("->", 2)
-          val future = router.ask(Update(params(0), params(1)))(5 seconds)
-          try {
-            val result = Await.result(future, timeout.duration)
-            sender ! result
-            println(getResult(result))
-          } catch {
-            case timeout: TimeoutException => println("Await timeout")
-          }
+          router ! Update(params(0), params(1), id)
         }
         case _ => {
           println("Don't know command")

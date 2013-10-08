@@ -5,6 +5,8 @@ import akka.pattern.ask
 import scala.concurrent.duration._
 import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
+import Utils.FileUtils._
+import client.Messages.ConsoleMessage
 
 /**
  * User: Vasily
@@ -16,19 +18,18 @@ object StartDatabase {
   val timeout = new Timeout(10000)
 
   def main(args: Array[String]) {
+    if (args.length == 0 || !pathExists(args(0))) {
+      println("error, database path")
+      System.exit(0)
+    }
     val system = ActorSystem("Database")
     val database = system.actorOf(server.Nodes.Node.props(args(0)))
     val nodes = Array(database.path.toString)
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
-      .foreach(send(_, client))
-    val future = client.ask("quit")(10 seconds)
-    try {
-      Await.result(future, 10 seconds)
-    } catch {
-      case timeout: TimeoutException => println("shutdown timeout")
-    }
-    system.shutdown()
+      .foreach(client ! ConsoleMessage(_, System.currentTimeMillis()))
+    client ! "quit"
+    system.awaitTermination()
   }
 
 

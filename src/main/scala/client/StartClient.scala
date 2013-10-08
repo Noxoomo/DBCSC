@@ -8,6 +8,7 @@ import akka.pattern.ask
 import scala.concurrent.duration._
 import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
+import client.Messages.ConsoleMessage
 
 /**
  * User: Vasily
@@ -35,16 +36,9 @@ object StartClient {
     val system = ActorSystem("Client", ConfigFactory.load(customConf)) //,ConfigFactory.load(akkaConfig))
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
-      .foreach(send(_, client))
-    val future = client.ask("quit")(5 seconds)
-    try {
-      Await.result(future, Timeout(10000000000).duration)
-      system.shutdown()
-    } catch {
-      case timeout: TimeoutException => println("shutdown timeout")
-    }
+      .foreach(client ! ConsoleMessage(_, System.currentTimeMillis()))
+    client ! "quit"
     system.awaitTermination()
-
   }
 
   def send(str: String, client: ActorRef) {
