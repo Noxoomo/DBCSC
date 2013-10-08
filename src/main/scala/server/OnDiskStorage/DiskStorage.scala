@@ -64,7 +64,6 @@ class DiskStorage(dbPath: String) extends Database {
       try {
         val keyLen = ind.file.readInt()
         // val keyBytes = new Array[Byte](keyLen)
-        ind.file.readLong() //timestamp
         ind.file.seek(ind.file.getFilePointer)
         val removed = ind.file.readBoolean()
         if (removed) throw new NoKeyFoundException

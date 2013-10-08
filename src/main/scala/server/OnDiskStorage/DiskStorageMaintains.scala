@@ -64,7 +64,6 @@ class DiskStorageMaintains(dbPath: String) {
         val keyBytes = (key).getBytes()
         val valueBytes = value.getBytes()
         file.writeInt(keyBytes.length)
-        file.writeLong(timestamp)
         file.writeBoolean(false)
         file.write(keyBytes)
         file.writeInt(valueBytes.length)
@@ -72,7 +71,6 @@ class DiskStorageMaintains(dbPath: String) {
       } else {
         val keyBytes = (key).getBytes()
         file.writeInt(keyBytes.length)
-        file.writeLong(timestamp)
         file.writeBoolean(true)
         file.write(keyBytes)
       }
@@ -118,6 +116,7 @@ class DiskStorageMaintains(dbPath: String) {
         firstReader.write(writer)
       }
     }
+    writer.writeInt(-1)
     writer.flush()
     writer.close()
     return filename
