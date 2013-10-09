@@ -35,8 +35,12 @@ object StartClient {
     val customConf = ConfigFactory.parseString(conf)
     val system = ActorSystem("Client", ConfigFactory.load(customConf)) //,ConfigFactory.load(akkaConfig))
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
+    var queryId = 0
+
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
-      .foreach(client ! ConsoleMessage(_, System.currentTimeMillis()))
+      .foreach(x => {
+      (client ! ConsoleMessage(x, queryId)); queryId += 1
+    })
     client ! "quit"
     system.awaitTermination()
   }

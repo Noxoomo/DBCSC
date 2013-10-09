@@ -6,22 +6,20 @@ import akka.actor.{Props, Actor}
 import akka.util.Timeout
 import scala.util.Random
 
-
 /**
  * User: Vasily
  * Date: 01.10.13
  * Time: 20:40
  */
 class Router(nodesInfo: Array[String]) extends Actor {
-  //val node1 = context.actorOf(server.Nodes.Node.props("db1"))
-  //val node2 = context.actorOf(server.Nodes.Node.props("db2"))
-  //val nodes = Array(node1,node2)
   val nodes = nodesInfo.map(x => context.actorSelection(x))
   val timeout = new Timeout(5000)
   val random = new Random()
 
-
   override def receive: Actor.Receive = {
+    case "ping" => {
+      context.parent ! "ping"
+    }
     case cmd: Commands => cmd match {
       case Close() => {
         for (node <- nodes) node ! Close()

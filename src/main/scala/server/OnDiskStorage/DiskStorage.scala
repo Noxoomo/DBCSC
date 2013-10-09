@@ -17,7 +17,7 @@ import server.OnDiskStorage.DiskStatus._
 class DiskStorage(dbPath: String) {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
   private val maintainer = new DiskStorageMaintains(dbDir)
-  private val memoryLimit = 100 * 1024 * 1024L
+  private val memoryLimit = 150 * 1024 * 1024L
   if (!pathExists(dbDir)) createFolder(dbDir)
   if (!pathExists(dbDir + "merge/")) createFolder(dbDir + "merge/")
   //files and their indexes
@@ -57,7 +57,6 @@ class DiskStorage(dbPath: String) {
     if (index.isEmpty) NoKeyFound()
     else {
       val toLook = FileIndex.get(lookupkey, index.head)
-
       def proceed(toLook: List[Long]): DiskLookupResult = {
         if (toLook.isEmpty) NoKeyFound()
         else {
@@ -84,7 +83,11 @@ class DiskStorage(dbPath: String) {
           }
         }
       }
-      proceed(toLook)
+      val result = proceed(toLook)
+      result match {
+        case NoKeyFound() => look(lookupkey, files.tail, index.tail)
+        case _ => result
+      }
     }
   }
 

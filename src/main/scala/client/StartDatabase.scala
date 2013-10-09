@@ -7,7 +7,6 @@ import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
 import client.Messages.ConsoleMessage
 
-import akka.pattern.gracefulStop
 
 /**
  * User: Vasily
@@ -26,10 +25,12 @@ object StartDatabase {
     val system = ActorSystem("Database")
     val database = system.actorOf(server.Nodes.Node.props(args(0)))
     val nodes = Array(database.path.toString)
+    var queryId = 0
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
-      .foreach(client ! ConsoleMessage(_, System.currentTimeMillis()))
-    gracefulStop(client, timeout.duration)
+      .foreach(x => {
+      (client ! ConsoleMessage(x, queryId)); queryId += 1
+    })
     system.shutdown()
   }
 

@@ -15,6 +15,7 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
   val router = context.actorOf(Router.props(nodes), "route")
   var quit = 0
 
+
   def resultPre(id: Long) = "For request %d response is ".format(id)
 
   def getResult(result: Any): String = {
@@ -32,20 +33,14 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
 
   override def receive: Actor.Receive = {
 
-    case null =>
-
-    case GetClose() => {
-      quit += 1
-      if (quit == nodes.length) {
-        context.system.shutdown()
-      }
-    }
+    case "ping" => println("got ping")
     case "quit" => {
       router ! Close()
     }
     case ConsoleMessage(msg, id) => {
       val request = msg.split(" ", 2)
       request(0) match {
+        case "ping" => println("ping test"); router ! "ping"
         case "get" => {
           router ! Get(request(1), id)
         }
@@ -63,6 +58,12 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
         case _ => {
           println("Don't know command")
         }
+      }
+    }
+    case GetClose() => {
+      quit += 1
+      if (quit == nodes.length) {
+        context.system.shutdown()
       }
     }
     case response: Response => println(getResult(response))
