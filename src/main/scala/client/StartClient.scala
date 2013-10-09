@@ -48,5 +48,4 @@ object StartClient {
       case e: TimeoutException => println("request timeout")
     }
   }
-
 }

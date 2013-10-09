@@ -50,7 +50,7 @@ class KeyIndex(files: List[RandomAccessFile]) {
 
   def reIndex() {
     index.clear()
-    files.foreach(indexFile(_))
+    files.foreach(indexFile)
   }
 }
 

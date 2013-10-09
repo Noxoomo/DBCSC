@@ -2,7 +2,7 @@ package server.OnDiskStorage
 
 import java.io._
 import Utils.FileUtils._
-import scala.{Long, Short}
+import scala.Long
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
@@ -17,11 +17,11 @@ import java.nio.channels.FileChannel.MapMode
 object FileIndex {
   val intSize = 4
 
-  class Entry(val hash: Short, val offset: Long)
+  class Entry(val hash: Int, val offset: Long)
 
   /**
    * creates index of filename
-   * @param filename
+   * @param filename should be correct db-file
    */
 
 
@@ -29,53 +29,58 @@ object FileIndex {
     if (!pathExists(filename)) throw new FileNotFoundException()
     var index = List[Entry]()
     val reader = new DataInputStream(new FileInputStream(filename))
-    var offset = 0
+    var offset = 0L
     var keyLength = reader.readInt()
-    while (keyLength != -1) {
-      val keyBytes = new Array[Byte](keyLength)
-      val key = new String(keyBytes)
-      val removed = reader.readBoolean()
-      reader.read(keyBytes)
-      if (!removed) {
-        val valueLength = reader.readInt()
-        reader.skipBytes(valueLength)
+    try {
+      while (keyLength != -1) {
+        val keyBytes = new Array[Byte](keyLength)
+        val removed = reader.readBoolean()
+        reader.read(keyBytes)
+        val key = new String(keyBytes)
+        index = new Entry(key.hashCode, offset) :: index
+        offset += intSize + keyLength + 1
+        offset += {
+          if (!removed) {
+            val valueLength = reader.readInt()
+            reader.skipBytes(valueLength)
+            valueLength + intSize
+          } else 0
+        }
+        try {
+          keyLength = reader.readInt()
+        } catch {
+          case e: EOFException => keyLength = -1
+        }
       }
-      index = (new Entry(key.hashCode.toShort, offset)) :: index
-      offset += intSize + keyLength + 1
-      offset += {
-        if (!removed) {
-          val valueLength = reader.readInt()
-          reader.skipBytes(valueLength)
-          valueLength + intSize
-        } else 0
-      }
-      keyLength = reader.readInt()
+    } finally {
+      reader.close()
     }
     val writer = new DataOutputStream(new FileOutputStream(filename + ".index"))
     for (entry <- index.toArray.sortBy(x => x.hash)) {
-      writer.writeShort(entry.hash) //short - 2 bytes
+      writer.writeInt(entry.hash) //int - 4 bytes
       writer.writeLong(entry.offset) //long - 8 bytes
     }
     writer.flush()
     writer.close()
-    val channel: FileChannel = new RandomAccessFile(filename + ".index", "r").getChannel();
-    channel.map(MapMode.READ_ONLY, 0L, channel.size());
+    val channel: FileChannel = new RandomAccessFile(filename + ".index", "r").getChannel
+    channel.map(MapMode.READ_ONLY, 0L, channel.size())
   }
 
-  def get(key: String, bytes: MappedByteBuffer): List[Long] = search(key.hashCode.toShort, bytes)
+  def get(key: String, bytes: MappedByteBuffer): List[Long] = search(key.hashCode, bytes)
 
-  private def search(hash: Short, bytes: MappedByteBuffer): List[Long] = {
-    val end = bytes.capacity() / 10 //should divide to 2+8=10
+  private def search(hash: Int, bytes: MappedByteBuffer): List[Long] = {
+    val blockSize = 12
+    val end = bytes.capacity() / blockSize //should divide to 4+8=12
 
     def binarySearch(left: Int, right: Int): Int = {
       if (right - left <= 1) {
         if (right == end) -1
-        else if (bytes.getShort(right * 10) == hash) {
+        else if (bytes.getInt(right * blockSize) == hash) {
           right
-        } else -1
+        } else left
       } else {
         val mid: Int = (right + left) / 2
-        val midHash = bytes.getShort(mid * 10)
+        val midHash = bytes.getInt(mid * blockSize)
         if (midHash < hash) {
           binarySearch(mid, right)
         } else {
@@ -84,9 +89,10 @@ object FileIndex {
       }
     }
     val start = binarySearch(0, end)
-    def toList(pos: Int): List[Long] = {
-      if (bytes.getShort(pos) == hash) {
-        bytes.getLong(10 * pos + 2) :: toList(pos + 1)
+
+    def toList(start: Int): List[Long] = {
+      if (bytes.capacity() > start * blockSize && bytes.getInt(start * blockSize) == hash) {
+        bytes.getLong(blockSize * start + 4) :: toList(start + 1)
       } else List()
     }
     if (start != -1) toList(start) else List()

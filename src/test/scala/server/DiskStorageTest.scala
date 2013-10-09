@@ -94,7 +94,7 @@ class DiskStorageTest extends FlatSpec with Matchers {
     val path = "src/test/resources/BigData/"
     val db = new DiskStorage(path)
     val testLimit = 1000000
-    val value = (new BufferedReader(new FileReader(path + "testline"))).readLine()
+    val value = new BufferedReader(new FileReader(path + "testline")).readLine()
     for (i <- 0 to testLimit) {
       db.insert(i.toString, value + i.toString)
     }

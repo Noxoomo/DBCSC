@@ -12,7 +12,7 @@ class CommitLog(dir: String) {
 
 
   def insert(key: String, value: String) {
-    writer.write(("%s\n%d\n%s\n").format(key, value.length, value))
+    writer.write("%s\n%d\n%s\n".format(key, value.length, value))
     writer.flush()
   }
 

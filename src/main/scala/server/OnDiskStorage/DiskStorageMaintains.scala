@@ -2,6 +2,7 @@ package server.OnDiskStorage
 
 import java.io._
 import Utils.FileUtils._
+import java.nio.MappedByteBuffer
 
 
 /**
@@ -15,10 +16,10 @@ class DiskStorageMaintains(dbPath: String) {
   private val commitsFilename = dbPath + "commits"
   if (!pathExists(database)) createFolder(database)
 
-  def getFileList() = new File(database).listFiles()
+  def getFileList = new File(database).listFiles()
     .filter(x => !(x.isDirectory || x.getName.endsWith(".index"))).sortBy(x => x.getName.toLong)
 
-  def getOldIndexList() = new File(database).listFiles().filter(x => !x.isDirectory && x.getName.endsWith(".index"))
+  def getOldIndexList = new File(database).listFiles().filter(x => !x.isDirectory && x.getName.endsWith(".index"))
 
   private def merge(files: Array[File]): String = {
     if (files.length == 1) {
@@ -39,24 +40,25 @@ class DiskStorageMaintains(dbPath: String) {
   def flush(memory: Memory): String = {
     val filename = database + System.currentTimeMillis().toString
     val file = new DataOutputStream(new FileOutputStream(filename))
-    val keys = ((memory.getData.keySet.union(memory.getRemoved)).toArray.sorted)
+    val keys = memory.getData.keySet.union(memory.getRemoved).toArray.sorted
     for (key <- keys) {
       if (memory contains key) {
         val value = memory.get(key)
-        val keyBytes = (key).getBytes()
-        val valueBytes = value.getBytes()
+        val keyBytes = key.getBytes
+        val valueBytes = value.getBytes
         file.writeInt(keyBytes.length)
         file.writeBoolean(false)
         file.write(keyBytes)
         file.writeInt(valueBytes.length)
         file.write(valueBytes)
       } else {
-        val keyBytes = (key).getBytes()
+        val keyBytes = key.getBytes
         file.writeInt(keyBytes.length)
         file.writeBoolean(true)
         file.write(keyBytes)
       }
     }
+    file.writeInt(-1)
     file.flush()
     file.close()
     filename
@@ -66,17 +68,22 @@ class DiskStorageMaintains(dbPath: String) {
    * recreate database (removes old keys and values)
    */
   // def clean(): List[RandomAccessFile] = merge(getFileList())
-  def garbageCollect(): RandomAccessFile = {
-    val oldFiles = getFileList()
-    val filename = merge(oldFiles)
-    renameFile(filename, database + System.currentTimeMillis())
-    for (file <- oldFiles) {
-      removeFile(file.getAbsolutePath)
-    }
-    for (file <- getOldIndexList())
-      removeFile(file.getAbsolutePath)
-    FileIndex.index(filename)
-    new RandomAccessFile(filename, "r")
+  def garbageCollect(): (RandomAccessFile, MappedByteBuffer) = {
+    val oldFiles = getFileList
+    if (oldFiles.length > 0) {
+      val filename = merge(oldFiles)
+      val newName = database + System.currentTimeMillis()
+      renameFile(filename, newName)
+      for (file <- oldFiles) {
+        removeFile(file.getAbsolutePath)
+      }
+      for (file <- getOldIndexList)
+        removeFile(file.getAbsolutePath)
+      val indexBuffer = FileIndex.index(newName)
+      val randAccessFile = new RandomAccessFile(newName, "r")
+      (randAccessFile, indexBuffer)
+
+    } else (null, null)
   }
 
   private def merge(firstName: String, secondName: String): String = {
@@ -93,28 +100,32 @@ class DiskStorageMaintains(dbPath: String) {
     while (firstReader.notEmpty || secondReader.notEmpty) {
       if (!firstReader.notEmpty && secondReader.notEmpty) {
         secondReader.write(writer)
+        secondReader.next()
       } else if (!secondReader.notEmpty && firstReader.notEmpty) {
         firstReader.write(writer)
-      }
-      else if (firstReader.current().removed)
         firstReader.next()
-      else if (secondReader.current().removed) {
-        if (firstReader.current().key == secondReader.current().key)
-          firstReader.next()
-        secondReader.next()
       }
       else if (firstReader.current().key < secondReader.current().key) {
-        secondReader.write(writer)
+        if (firstReader.current().removed)
+          firstReader.next()
+        else {
+          firstReader.write(writer)
+          firstReader.next()
+        }
+      } else if (firstReader.current().key == secondReader.current().key) {
+        if (!secondReader.current().removed) secondReader.write(writer)
+        firstReader.next()
         secondReader.next()
       }
       else {
-        firstReader.write(writer)
+        secondReader.write(writer)
+        secondReader.next()
       }
     }
     writer.writeInt(-1)
     writer.flush()
     writer.close()
-    return filename
+    filename
   }
 
   def restore(): Memory = {

@@ -1,6 +1,7 @@
 package server.OnDiskStorage
 
-import server.Exception.{NoKeyFoundException, KeyExistsException}
+
+import scala.collection.mutable
 
 /**
  * User: Vasily
@@ -8,7 +9,7 @@ import server.Exception.{NoKeyFoundException, KeyExistsException}
  * Time: 22:07
  */
 class Memory {
-  private var data = Map.empty[String, String] //new mutable.HashMap[String, String]
+  private var data = new mutable.HashMap[String, String] //new mutable.HashMap[String, String]
 
   private var removed = Set[String]()
   private var approximateMemory = 0L
@@ -22,7 +23,7 @@ class Memory {
 
   def clear() {
     approximateMemory = 0
-    data = Map.empty[String, String]
+    data.clear()
     removed = Set[String]()
   }
 
@@ -45,13 +46,11 @@ class Memory {
    * @param value for insert
    * @throws KeyExistsException  if key exists
    */
-  def insert(key: String, value: String): Unit =
-    if (data contains key) throw new KeyExistsException
-    else {
-      approximateMemory += memory(key, value)
-      data = data.+(key -> value)
-      removed = removed.-(key)
-    }
+  def insert(key: String, value: String) {
+    approximateMemory += memory(key, value)
+    data.put(key, value)
+    removed = removed.-(key)
+  }
 
   /**
    * if key exists returns value of this key, otherwise throws NoKeyFoundException
@@ -59,19 +58,17 @@ class Memory {
    * @throws NoKeyFoundException    if key doesn't exist
    *
    */
-  def get(key: String): String = if (data contains key) data.get(key).get else throw new NoKeyFoundException
+  def get(key: String): String = data.get(key).get
 
 
-  def update(key: String, value: String): Unit = if (!data.contains(key)) throw new NoKeyFoundException
-  else
-    data = data.+(key -> value)
+  def update(key: String, value: String) = insert(key, value)
 
   /**
    *
    * @param key   to remove
    */
   def remove(key: String): Unit = {
-    data = data.-(key)
+    data.remove(key)
     removed = removed.+(key)
   }
 }

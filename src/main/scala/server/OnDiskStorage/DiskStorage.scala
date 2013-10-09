@@ -18,13 +18,12 @@ class DiskStorage(dbPath: String) {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
   private val maintainer = new DiskStorageMaintains(dbDir)
   private val memoryLimit = 100 * 1024 * 1024L
-
-  //files and their indexes
-  private var files = List(maintainer.garbageCollect)
-  private var index = List[MappedByteBuffer]()
-
   if (!pathExists(dbDir)) createFolder(dbDir)
-
+  if (!pathExists(dbDir + "merge/")) createFolder(dbDir + "merge/")
+  //files and their indexes
+  val dbData = maintainer.garbageCollect()
+  private var files = List(dbData._1)
+  private var index = List(dbData._2)
   private val memory = maintainer.restore()
 
 
@@ -37,7 +36,7 @@ class DiskStorage(dbPath: String) {
 
   def flush() {
     val filename = maintainer.flush(memory)
-    index = (FileIndex.index(filename)) :: index
+    index = FileIndex.index(filename) :: index
     files = new RandomAccessFile(filename, "r") :: files
     memory.clear()
     commits.close()
@@ -67,14 +66,15 @@ class DiskStorage(dbPath: String) {
           try {
             val keyLen = file.readInt()
             val keyBytes = new Array[Byte](keyLen)
+            val removed = file.readBoolean()
             file.read(keyBytes)
             val key = new String(keyBytes)
             if (lookupkey == key) {
-              val removed = file.readBoolean()
               if (removed) WasRemoved()
               else {
                 val valueLen = file.readInt()
                 val valueBytes = new Array[Byte](valueLen)
+                file.read(valueBytes)
                 FoundValue(new String(valueBytes))
               }
             } else proceed(toLook.tail)
@@ -89,7 +89,7 @@ class DiskStorage(dbPath: String) {
   }
 
   def get(key: String): StorageResponse = {
-    if (memory contains (key)) Value(memory.get(key))
+    if (memory contains key) Value(memory.get(key))
     else if (memory.wasRemoved(key)) NothingFound()
     else {
       val result = look(key, files, index)

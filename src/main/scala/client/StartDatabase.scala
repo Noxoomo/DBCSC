@@ -5,8 +5,9 @@ import akka.pattern.ask
 import scala.concurrent.duration._
 import scala.concurrent.{TimeoutException, Await}
 import akka.util.Timeout
-import Utils.FileUtils._
 import client.Messages.ConsoleMessage
+
+import akka.pattern.gracefulStop
 
 /**
  * User: Vasily
@@ -18,7 +19,7 @@ object StartDatabase {
   val timeout = new Timeout(10000)
 
   def main(args: Array[String]) {
-    if (args.length == 0 || !pathExists(args(0))) {
+    if (args.length == 0) {
       println("error, database path")
       System.exit(0)
     }
@@ -28,8 +29,8 @@ object StartDatabase {
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
       .foreach(client ! ConsoleMessage(_, System.currentTimeMillis()))
-    client ! "quit"
-    system.awaitTermination()
+    gracefulStop(client, timeout.duration)
+    system.shutdown()
   }
 
 
