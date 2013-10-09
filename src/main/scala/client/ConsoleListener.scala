@@ -26,14 +26,15 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
       case OK(text, id) => resultPre(id) + text
       case Error(key, id) => resultPre(id) + "Error " + key
       case NoKey(key, id) => resultPre(id) + "No key found " + key
+      case _ => "Unknown response"
     }
   }
 
   override def receive: Actor.Receive = {
 
     case null =>
-    case result: Response => println(getResult(result))
-    case getQuit() => {
+
+    case GetClose() => {
       quit += 1
       if (quit == nodes.length) {
         context.system.shutdown()
@@ -64,7 +65,7 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
         }
       }
     }
-    case _ =>
+    case response: Response => println(getResult(response))
   }
 
 }

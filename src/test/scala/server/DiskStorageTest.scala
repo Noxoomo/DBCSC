@@ -1,12 +1,12 @@
 package server
 
 import org.scalatest._
-import server.Exception.NoKeyFoundException
 import scala.util.Random
 
 import Utils.FileUtils._
 import server.OnDiskStorage.DiskStorage
 import java.io.{FileReader, BufferedReader}
+import server.OnDiskStorage.DiskStatus._
 
 class DiskStorageTest extends FlatSpec with Matchers {
   val rand = new Random()
@@ -18,19 +18,15 @@ class DiskStorageTest extends FlatSpec with Matchers {
     removeFolder(path)
     val db = new DiskStorage(path)
     db.insert("key1", "value1")
-    db.get("key1") should be("value1")
+    db.get("key1") should be(Value("value1"))
     db.insert("key2", "value2")
     db.update("key1", "update-value1\n")
-    db.get("key1") should be("update-value1\n")
-    db.get("key2") should be("value2")
+    db.get("key1") should be(Value("update-value1\n"))
+    db.get("key2") should be(Value("value2"))
     db.remove("key2")
     db.remove("key1")
-    intercept[NoKeyFoundException] {
-      db.get("key2")
-    }
-    intercept[NoKeyFoundException] {
-      db.get("key1")
-    }
+    db.get("key2") should be(NothingFound())
+    db.get("key1") should be(NothingFound())
     db.close()
   }
 
@@ -39,7 +35,7 @@ class DiskStorageTest extends FlatSpec with Matchers {
     val keyPre = "key-"
     val valuePre = "some value "
     //val testLimit = 1000000
-    val testLimit = 10000
+    val testLimit = 100000
     removeFolder(path + "db/")
     removeFolder(path)
 
@@ -49,28 +45,29 @@ class DiskStorageTest extends FlatSpec with Matchers {
     for (i <- 0 to testLimit) {
       db.insert(keyPre + i.toString, valuePre + i.toString)
       val id = rand.nextInt(i + 1)
-      db.get(keyPre + id) should be(valuePre + id)
+      db.get(keyPre + id) should be(Value(valuePre + id))
     }
     db.close()
     val endTime = System.currentTimeMillis()
     print(endTime - startTime)
   }
 
-  "DiskStorage" should "recover from commit-log" in {
-    val path = "src/test/resources/testDiskStorageClean/"
+  "DiskStorage" should "recover from commit-log and merge" in {
+    val path = "src/test/resources/testDiskStorageRecover/"
     removeFolder(path + "db/")
     createFolder(path + "db/")
     removeFile(path + "commits")
     copyFile(path + "commits.test", path + "commits")
-    copyFile(path + "1381129040293", path + "db/1381129040293")
-
+    copyFile(path + "1381328478565", path + "db/1381328478565")
+    copyFile(path + "1381328519306", path + "db/1381328519306")
     val db = new DiskStorage(path)
-    intercept[NoKeyFoundException] {
-      db.get("key1")
-    }
-    db.get("key2") should be("value2")
-    db.get("key3") should be("value3")
-    db.get("key4") should be("value4")
+    db.get("key1") should be(NothingFound())
+    db.get("key4") should be(NothingFound())
+    db.get("key2") should be(Value("valueA"))
+    db.get("key3") should be(Value("valueB"))
+    db.get("key5") should be(Value("value5"))
+    db.get("key-1") should be(Value("value-1"))
+    db.get("key-2") should be(Value("value-2"))
     db.close()
   }
 
@@ -80,27 +77,25 @@ class DiskStorageTest extends FlatSpec with Matchers {
     //clean(filename)
     val path = "src/test/resources/testExistDB/"
     val db = new DiskStorage(path)
-    db.get("key1") should be("value1")
-    db.get("key2") should be("value2")
-    db.get("key3") should be("value3")
-    db.get("key4") should be("value4")
-    intercept[NoKeyFoundException] {
-      db.get("ssss")
-    }
+    db.get("key1") should be(Value("value1"))
+    db.get("key2") should be(Value("value2"))
+    db.get("key3") should be(Value("value3"))
+    db.get("key4") should be(Value("value4"))
+    db.get("sss") should be(NothingFound())
     db.close()
   }
 
-  "DiskStorage" should "handling big data" in {
+  "Storage" should "handling big data" in {
     val path = "src/test/resources/BigData/"
     val db = new DiskStorage(path)
-    val testLimit = 1000000
+    val testLimit = 1000
     val value = new BufferedReader(new FileReader(path + "testline")).readLine()
     for (i <- 0 to testLimit) {
       db.insert(i.toString, value + i.toString)
     }
 
     for (i <- 0 to testLimit) {
-      db.get(i.toString) should be(value + i.toString)
+      db.get(i.toString) should be(Value(value + i.toString))
     }
     db.close()
   }

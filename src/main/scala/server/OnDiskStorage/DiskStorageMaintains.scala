@@ -16,8 +16,10 @@ class DiskStorageMaintains(dbPath: String) {
   private val commitsFilename = dbPath + "commits"
   if (!pathExists(database)) createFolder(database)
 
-  def getFileList = new File(database).listFiles()
-    .filter(x => !(x.isDirectory || x.getName.endsWith(".index"))).sortBy(x => x.getName.toLong)
+  def getFileList = {
+    val dir = new File(database).listFiles()
+    dir.filter(x => !(x.getName.startsWith(".") || x.isDirectory || x.getName.endsWith(".index"))).sortBy(x => x.getName.toLong)
+  }
 
   def getOldIndexList = new File(database).listFiles().filter(x => !x.isDirectory && x.getName.endsWith(".index"))
 
@@ -39,29 +41,31 @@ class DiskStorageMaintains(dbPath: String) {
 
   def flush(memory: Memory): String = {
     val filename = database + System.currentTimeMillis().toString
-    val file = new DataOutputStream(new FileOutputStream(filename))
     val keys = memory.getData.keySet.union(memory.getRemoved).toArray.sorted
-    for (key <- keys) {
-      if (memory contains key) {
-        val value = memory.get(key)
-        val keyBytes = key.getBytes
-        val valueBytes = value.getBytes
-        file.writeInt(keyBytes.length)
-        file.writeBoolean(false)
-        file.write(keyBytes)
-        file.writeInt(valueBytes.length)
-        file.write(valueBytes)
-      } else {
-        val keyBytes = key.getBytes
-        file.writeInt(keyBytes.length)
-        file.writeBoolean(true)
-        file.write(keyBytes)
+    if (keys.length > 0) {
+      val file = new DataOutputStream(new FileOutputStream(filename))
+      for (key <- keys) {
+        if (memory contains key) {
+          val value = memory.get(key)
+          val keyBytes = key.getBytes
+          val valueBytes = value.getBytes
+          file.writeInt(keyBytes.length)
+          file.writeBoolean(false)
+          file.write(keyBytes)
+          file.writeInt(valueBytes.length)
+          file.write(valueBytes)
+        } else {
+          val keyBytes = key.getBytes
+          file.writeInt(keyBytes.length)
+          file.writeBoolean(true)
+          file.write(keyBytes)
+        }
       }
-    }
-    file.writeInt(-1)
-    file.flush()
-    file.close()
-    filename
+      file.writeInt(-1)
+      file.flush()
+      file.close()
+      filename
+    } else null
   }
 
   /**

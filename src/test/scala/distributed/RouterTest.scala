@@ -2,13 +2,10 @@ package distributed
 
 
 import org.scalatest.{Matchers, FlatSpec}
-import akka.actor.ActorSystem
+import akka.actor.{Props, Actor, ActorSystem}
 import client.Messages._
-import scala.concurrent.duration._
-import scala.concurrent.Await
 import akka.util.Timeout
 
-import akka.pattern.ask
 import Utils.FileUtils._
 import client.Messages.Get
 import client.Messages.Answer
@@ -19,7 +16,39 @@ import scala.util.Random
  * Date: 03.10.13
  * Time: 14:22
  */
+object ClientSurrogate {
+  def props(nodes: Array[String]): Props = Props(classOf[ClientSurrogate], nodes)
+}
+
+class ClientSurrogate(nodes: Array[String]) extends FlatSpec with Actor with Matchers {
+  val testLimit = 10000
+  var inserted = 0
+  var wasError = false
+  var quit = 0
+  val router = context.actorOf(client.Router.props(nodes), "router")
+
+  def receive: Actor.Receive = {
+    case Answer(key, value, id) => (key, value) should be(id.toString, id)
+    case OK(text, id) => inserted += 1; OK(text, id) should be(OK("key inserted", id))
+    case GetClose() => {
+      quit += 1
+      if (quit == nodes.length) {
+        inserted should be(testLimit)
+        context.system.shutdown()
+      }
+    }
+    case "quit" => {
+      router ! Close()
+    }
+    case Insert(key, value, id) => router ! Insert(key, value, id)
+    case Get(key, id) => router ! Get(key, id)
+    case _ =>
+
+  }
+}
+
 class RouterTest extends FlatSpec with Matchers {
+
 
   val rand = new Random()
   val timeout = Timeout(1000)
@@ -35,28 +64,24 @@ class RouterTest extends FlatSpec with Matchers {
   val node2 = system.actorOf(server.Nodes.Node.props(dbDir + "node2/"))
   val node3 = system.actorOf(server.Nodes.Node.props(dbDir + "node3/"))
   val nodes = Array(node1.path.toString, node2.path.toString, node3.path.toString)
-  val router = system.actorOf(client.Router.props(nodes), "router")
+  val testClient = system.actorOf(ClientSurrogate.props(nodes), "clientSurrogate")
+
 
   "Router" should "route queries" in {
 
-    val keyPre = "key-"
-    val valuePre = "some value "
-    val timeout = Timeout(1000)
 
     //val testLimit = 1000000
     val testLimit = 10000
 
     for (i <- 0 to testLimit) {
-      val future = router.ask(Insert(keyPre + i.toString, valuePre + i.toString, i))(5 seconds)
-      Await.result(future, timeout.duration) should be(OK("key inserted", i))
-
+      testClient ! Insert(i.toString, i.toString, i)
     }
     for (i <- 0 to testLimit) {
       val id = rand.nextInt(i + 1)
-      val futureGet = router.ask(Get(keyPre + id.toString, i))(5 seconds)
-      Await.result(futureGet, timeout.duration) should be(Answer(keyPre + id.toString, valuePre + id.toString, i))
+      testClient ! Get(id.toString, id)
     }
-    system.shutdown()
+    testClient ! "quit"
+    system.awaitTermination()
   }
 
 

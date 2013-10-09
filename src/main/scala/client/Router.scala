@@ -13,37 +13,39 @@ import scala.util.Random
  * Time: 20:40
  */
 class Router(nodesInfo: Array[String]) extends Actor {
+  //val node1 = context.actorOf(server.Nodes.Node.props("db1"))
+  //val node2 = context.actorOf(server.Nodes.Node.props("db2"))
+  //val nodes = Array(node1,node2)
   val nodes = nodesInfo.map(x => context.actorSelection(x))
   val timeout = new Timeout(5000)
   val random = new Random()
 
 
   override def receive: Actor.Receive = {
-    case response: Response => {
-      context.parent ! response
-    }
-    case Close => {
-      for (node <- nodes) node ! Close()
-    }
+    case cmd: Commands => cmd match {
+      case Close() => {
+        for (node <- nodes) node ! Close()
+      }
 
-    case Get(key, id) => {
-      val node = getNodes(key)
-      node ! Get(key, id)
+      case Get(key, id) => {
+        val node = getNodes(key)
+        node ! Get(key, id)
+      }
+      case Remove(key, id) => {
+        val node = getNodes(key)
+        node ! Remove(key, id)
+      }
+      case Insert(key, value, id) => {
+        val node = getNodes(key)
+        node ! Insert(key, value, id)
+      }
 
+      case Update(key, value, id) => {
+        val node = getNodes(key)
+        node ! Update(key, value, id)
+      }
     }
-    case Remove(key, id) => {
-      val node = getNodes(key)
-      node ! Remove(key, id)
-    }
-    case Insert(key, value, id) => {
-      val node = getNodes(key)
-      node ! Insert(key, value, id)
-    }
-
-    case Update(key, value, id) => {
-      val node = getNodes(key)
-      node ! Update(key, value, id)
-    }
+    case response: Response => context.parent ! response
     case _ => sender ! Error("unknown command", -1)
   }
 

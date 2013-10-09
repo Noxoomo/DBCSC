@@ -33,9 +33,9 @@ object Messages {
 
   case class NoKey(key: String, id: Long) extends Response
 
-  case class Close()
+  case class Close() extends Commands
 
-  case class getQuit() extends Response
+  case class GetClose() extends Response
 
   case class ConsoleMessage(message: String, id: Long)
 
