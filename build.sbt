@@ -16,4 +16,5 @@ libraryDependencies += "com.typesafe.akka" %% "akka-camel" % "2.2.1"
  
 libraryDependencies += "com.typesafe.akka" %% "akka-remote" % "2.2.1"
 
+libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.2.1"
 

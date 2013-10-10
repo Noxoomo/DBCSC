@@ -22,8 +22,8 @@ class DiskStorage(dbPath: String) {
   if (!pathExists(dbDir + "merge/")) createFolder(dbDir + "merge/")
   //files and their indexes
   val dbData = maintainer.garbageCollect()
-  private var files = List(dbData._1)
-  private var index = List(dbData._2)
+  private var files = if (dbData._1 != null) List(dbData._1) else List()
+  private var index = if (dbData._2 != null) List(dbData._2) else List()
   private val memory = maintainer.restore()
 
 
@@ -94,14 +94,14 @@ class DiskStorage(dbPath: String) {
   def get(key: String): StorageResponse = {
     if (memory contains key) Value(memory.get(key))
     else if (memory.wasRemoved(key)) NothingFound()
-    else {
+    else if (!index.isEmpty) {
       val result = look(key, files, index)
       result match {
         case FoundValue(value) => Value(value)
         case WasRemoved() => NothingFound()
         case NoKeyFound() => NothingFound()
       }
-    }
+    } else NothingFound()
   }
 
 
