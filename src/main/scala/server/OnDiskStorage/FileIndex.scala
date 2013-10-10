@@ -75,9 +75,9 @@ object FileIndex {
     def binarySearch(left: Int, right: Int): Int = {
       if (right - left <= 1) {
         if (right == end) -1
-        else if (bytes.getInt(right * blockSize) == hash) {
-          right
-        } else left
+        else if (bytes.getInt(left * blockSize) == hash) {
+          left
+        } else right
       } else {
         val mid: Int = (right + left) / 2
         val midHash = bytes.getInt(mid * blockSize)
