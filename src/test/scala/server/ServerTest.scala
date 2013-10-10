@@ -8,7 +8,7 @@ class ServerTest extends FlatSpec with Matchers {
 
 
   "Server" should "start database and process queries" in {
-    removeFolder(filename)
+    removeFolder(filename + "db/")
     try {
       val server = new Server(filename)
       server.processLine("insert key1->value1") should be("inserted")
@@ -20,9 +20,9 @@ class ServerTest extends FlatSpec with Matchers {
       server.processLine("get key1") should be("value-1")
       server.processLine("remove key1") should be("removed")
       server.processLine("get key1") should be("No key found")
-      server.processLine("insert key2->value3") should be("Error, key already exists")
+      server.processLine("insert key2->value3") should be("inserted")
     } finally {
-      removeFolder(filename)
+      removeFolder(filename + "db/")
     }
   }
 
