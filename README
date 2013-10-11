@@ -15,10 +15,10 @@ Or just run: sbt run cmd and choose class to load
 ----
 
 API (console)
-insert key->value //insert, if key exists -> error
+insert key->value //insert, if key exists - rewrite it
 get key // get key, if no key found -> error
-remove key //delete key, if succesufull -> report, if can't delete -> can't delete message, if no key found -> no key found error
-update key->value //update value of the key if key exists
+remove key //delete key, if succesufull -> report, if can't delete -> can't delete message, if no key found - succeed message
+update key->value // == insert
 quit // quit
 ----
 
