@@ -12,7 +12,7 @@ import server.OnDiskStorage.DiskStatus.{NothingFound, Value}
  * Date: 01.10.13
  * Time: 8:38
  */
-//node name = path to node working dir
+//node name = path to node working filename
 class Node(private val nodeName: String) extends Actor {
   private val dbPath = if (nodeName.endsWith("/")) nodeName else nodeName + "/"
   private val storage = new DiskStorage(dbPath)

@@ -19,11 +19,139 @@ object FileIndex {
 
   class Entry(val hash: Int, val offset: Long)
 
+  def sort(filename: String): MappedByteBuffer = {
+    val channel: FileChannel = new RandomAccessFile(filename + ".indexSort/index", "r").getChannel
+    val all = channel.map(MapMode.READ_ONLY, 0L, channel.size())
+    val sortedIndex = merge(all, 0, all.capacity() / 12, filename)
+    if (pathExists(filename)) {
+      removeFile(filename)
+    }
+    renameFile(sortedIndex, filename + ".index")
+    val ind: FileChannel = new RandomAccessFile(filename + ".index", "r").getChannel
+    ind.map(MapMode.READ_ONLY, 0L, channel.size())
+  }
+
+  private def merge(firstName: String, secondName: String, path: String): String = {
+    val firstChannel = new RandomAccessFile(firstName, "r").getChannel
+    val first = firstChannel.map(MapMode.READ_ONLY, 0L, firstChannel.size())
+    val secondChannel = new RandomAccessFile(firstName, "r").getChannel
+    val second = secondChannel.map(MapMode.READ_ONLY, 0L, secondChannel.size())
+    //first should be created before second
+
+    if (pathExists(path + "merge/" + System.currentTimeMillis().toString)) {
+      Thread.sleep(5)
+    }
+    val filename = path + "merge/" + System.currentTimeMillis().toString
+
+    val writer = new DataOutputStream(new FileOutputStream(filename))
+
+
+    while (first.position() < first.capacity() || second.position() < second.capacity()) {
+      if (first.position() >= first.capacity() && second.position() < second.capacity()) {
+        val index = second.getInt()
+        val offset = second.getLong()
+        writer.writeInt(index)
+        writer.writeLong(offset)
+      } else if (second.position() >= second.capacity() && first.position() < first.capacity()) {
+        val index = first.getInt()
+        val offset = first.getLong()
+        writer.writeInt(index)
+        writer.writeLong(offset)
+      } else {
+        val firstPos = first.position()
+        val secondPos = second.position()
+        val firstIndex = first.getInt()
+        val secondIndex = second.getInt()
+        if (firstIndex <= secondIndex) {
+          val offset = first.getLong()
+          writer.writeInt(firstIndex)
+          writer.writeLong(offset)
+          second.position(secondPos)
+        } else {
+          val offset = second.getLong()
+          writer.writeInt(secondIndex)
+          writer.writeLong(offset)
+          first.position(firstPos)
+        }
+      }
+    }
+    writer.flush()
+    writer.close()
+    filename
+  }
+
+  def merge(index: MappedByteBuffer, start: Int, end: Int, path: String): String = {
+    val end = index.capacity() / 12
+    if (end <= 100000) {
+      val entries = (for (i <- 1 to end) yield
+        new Entry(index.getInt((start + i) * 12), index.getLong((start + i) * 12 + 4))).sortBy(x => x.hash)
+      if (pathExists(path + "merge/" + System.currentTimeMillis().toString)) {
+        Thread.sleep(5)
+      }
+      val filename = path + "merge/" + System.currentTimeMillis().toString
+      val writer = new DataOutputStream(new FileOutputStream(filename))
+      for (entry <- entries) {
+        writer.writeInt(entry.hash)
+        writer.writeLong(entry.offset)
+      }
+      writer.flush()
+      writer.close()
+      filename
+    } else {
+      val mid = end / 2
+      val left = merge(index, 0, mid, path)
+      val right = merge(index, mid + 1, end, path)
+      val mergeFile = merge(left, right, path)
+      removeFile(left)
+      removeFile(right)
+      mergeFile
+    }
+  }
+
+
   /**
    * creates index of filename
    * @param filename should be correct db-file
    */
 
+  def indexBigFiles(filename: String): MappedByteBuffer = {
+    if (!pathExists(filename)) throw new FileNotFoundException()
+    val reader = new DataInputStream(new FileInputStream(filename))
+    val indexSortDir = filename + ".indexSort/"
+    createFolder(indexSortDir)
+    val unsortedIndex = indexSortDir + "index"
+    val writer = new DataOutputStream(new FileOutputStream(unsortedIndex))
+    var offset = 0L
+    var keyLength = reader.readInt()
+    try {
+      while (keyLength != -1) {
+        val keyBytes = new Array[Byte](keyLength)
+        val removed = reader.readBoolean()
+        reader.read(keyBytes)
+        val key = new String(keyBytes)
+        writer.writeInt(key.hashCode) //int - 4 bytes
+        writer.writeLong(offset) //long - 8 bytes
+        offset += intSize + keyLength + 1
+        offset += {
+          if (!removed) {
+            val valueLength = reader.readInt()
+            reader.skipBytes(valueLength)
+            valueLength + intSize
+          } else 0
+        }
+        try {
+          keyLength = reader.readInt()
+        } catch {
+          case e: EOFException => keyLength = -1
+        }
+      }
+    } finally {
+      reader.close()
+      writer.flush()
+      writer.close()
+    }
+    sort(filename)
+  }
 
   def index(filename: String): MappedByteBuffer = {
     if (!pathExists(filename)) throw new FileNotFoundException()
