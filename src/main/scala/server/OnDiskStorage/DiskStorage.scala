@@ -17,7 +17,7 @@ import server.OnDiskStorage.DiskStatus._
 class DiskStorage(dbPath: String) {
   private val dbDir = if (dbPath.endsWith("/")) dbPath else dbPath + "/"
   private val maintainer = new DiskStorageMaintains(dbDir)
-  private val memoryLimit = 150 * 1024 * 1024L
+  private val memoryLimit = 100 * 1024 * 1024L
   if (!pathExists(dbDir)) createFolder(dbDir)
   if (!pathExists(dbDir + "merge/")) createFolder(dbDir + "merge/")
   //files and their indexes

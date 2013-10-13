@@ -4,7 +4,8 @@ import org.scalatest._
 
 import server.OnDiskStorage.DiskStorage
 import java.io.{FileReader, BufferedReader}
-import server.OnDiskStorage.DiskStatus._
+import Utils.FileUtils._
+import server.OnDiskStorage.DiskStatus.Value
 
 /**
  * User: Vasily
@@ -13,8 +14,9 @@ import server.OnDiskStorage.DiskStatus._
  */
 class BigDataTest extends FlatSpec with Matchers {
   //"Storage" should "handling big data" in {
-  ignore should "handling big data" in {
+  "storage" should "handling big data" in {
     val path = "src/test/resources/BigData/"
+    removeFolder(path + "db/")
     val db = new DiskStorage(path)
     val testLimit = 16000000
     val value = new BufferedReader(new FileReader(path + "testline")).readLine()
