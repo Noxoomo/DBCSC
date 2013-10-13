@@ -24,9 +24,12 @@ class NodesTest extends FlatSpec with Matchers {
   val timeout = Timeout(1000)
 
   "Nodes" should "start and proceed queries" in {
-    val dbDir = "src/test/resources/testExistDB/"
+    val path = "src/test/resources/testExistDB/"
+    removeFolder(path + "db")
+    createFolder(path + "db")
+    copyFile(path + "test.db", path + "db/" + System.currentTimeMillis().toString)
     val system = ActorSystem("NodeTest")
-    val node = system.actorOf(server.Nodes.Node.props(dbDir))
+    val node = system.actorOf(server.Nodes.Node.props(path))
 
     //key1
     val future1 = node.ask(Get("key1", 1))(5 seconds)

@@ -75,6 +75,9 @@ class DiskStorageTest extends FlatSpec with Matchers {
   "DiskStorage" should "read from existing Database" in {
     //clean(filename)
     val path = "src/test/resources/testExistDB/"
+    removeFolder(path + "db")
+    createFolder(path + "db")
+    copyFile(path + "test.db", path + "db/" + System.currentTimeMillis().toString)
     val db = new DiskStorage(path)
     db.get("key1") should be(Value("value1"))
     db.get("key2") should be(Value("value2"))
