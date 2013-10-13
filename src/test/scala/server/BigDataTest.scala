@@ -14,7 +14,7 @@ import server.OnDiskStorage.DiskStatus.Value
  */
 class BigDataTest extends FlatSpec with Matchers {
   //"Storage" should "handling big data" in {
-  "storage" should "handling big data" in {
+  ignore should "handling big data" in {
     val path = "src/test/resources/BigData/"
     removeFolder(path + "db/")
     val db = new DiskStorage(path)
