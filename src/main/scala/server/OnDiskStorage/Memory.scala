@@ -28,7 +28,7 @@ class Memory {
   }
 
   private def memory(key: String, value: String): Long = {
-    (key.getBytes.length + value.getBytes.length)
+    key.getBytes.length + value.getBytes.length
   }
 
   /**

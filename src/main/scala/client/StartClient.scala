@@ -39,7 +39,8 @@ object StartClient {
 
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
       .foreach(x => {
-      (client ! ConsoleMessage(x, queryId)); queryId += 1
+      client ! ConsoleMessage(x, queryId);
+      queryId += 1
     })
     client ! "quit"
     system.awaitTermination()

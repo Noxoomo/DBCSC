@@ -72,7 +72,7 @@ class DiskStorageMaintains(dbPath: String) {
    * recreate database (removes old keys and values)
    */
   // def clean(): List[RandomAccessFile] = merge(getFileList())
-  def garbageCollect(): (RandomAccessFile, MappedByteBuffer) = {
+  def garbageCollect(bigIndex: Boolean = true): (RandomAccessFile, MappedByteBuffer) = {
     val oldFiles = getFileList
     if (oldFiles.length > 0) {
       val filename = merge(oldFiles)
@@ -83,7 +83,7 @@ class DiskStorageMaintains(dbPath: String) {
       }
       for (file <- getOldIndexList)
         removeFile(file.getAbsolutePath)
-      val indexBuffer = FileIndex.index(newName)
+      val indexBuffer = if (bigIndex) FileIndex.indexBigFiles(newName) else FileIndex.index(newName)
       val randAccessFile = new RandomAccessFile(newName, "r")
       (randAccessFile, indexBuffer)
 

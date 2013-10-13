@@ -29,7 +29,8 @@ object StartDatabase {
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
     Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit")
       .foreach(x => {
-      (client ! ConsoleMessage(x, queryId)); queryId += 1
+      client ! ConsoleMessage(x, queryId);
+      queryId += 1
     })
     system.shutdown()
   }

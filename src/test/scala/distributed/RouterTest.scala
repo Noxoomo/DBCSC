@@ -30,7 +30,7 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
   val nodes = Array(node1.path.toString, node2.path.toString, node3.path.toString)
 
 
-  override def afterAll {
+  override def afterAll() {
     TestKit.shutdownActorSystem(system)
   }
 

@@ -20,55 +20,59 @@ object FileIndex {
   class Entry(val hash: Int, val offset: Long)
 
   def sort(filename: String): MappedByteBuffer = {
-    val channel: FileChannel = new RandomAccessFile(filename + ".indexSort/index", "r").getChannel
+    val workingDir = filename + ".indexSort/"
+    val channel: FileChannel = new RandomAccessFile(workingDir + "index", "r").getChannel
     val all = channel.map(MapMode.READ_ONLY, 0L, channel.size())
-    val sortedIndex = merge(all, 0, all.capacity() / 12, filename)
-    if (pathExists(filename)) {
-      removeFile(filename)
+    if (!pathExists(workingDir + "merge/")) createFolder(workingDir + "merge/")
+    val sortedIndex = merge(all, 0, all.capacity() / 12, workingDir)
+    if (pathExists(filename + ".index")) {
+      removeFile(filename + ".index")
     }
     renameFile(sortedIndex, filename + ".index")
+    removeFolder(workingDir + "merge")
+    removeFolder(workingDir)
     val ind: FileChannel = new RandomAccessFile(filename + ".index", "r").getChannel
-    ind.map(MapMode.READ_ONLY, 0L, channel.size())
+    ind.map(MapMode.READ_ONLY, 0L, ind.size())
   }
 
-  private def merge(firstName: String, secondName: String, path: String): String = {
+  private def merge(firstName: String, secondName: String, workingDir: String): String = {
     val firstChannel = new RandomAccessFile(firstName, "r").getChannel
     val first = firstChannel.map(MapMode.READ_ONLY, 0L, firstChannel.size())
-    val secondChannel = new RandomAccessFile(firstName, "r").getChannel
+    val secondChannel = new RandomAccessFile(secondName, "r").getChannel
     val second = secondChannel.map(MapMode.READ_ONLY, 0L, secondChannel.size())
     //first should be created before second
 
-    if (pathExists(path + "merge/" + System.currentTimeMillis().toString)) {
+    if (pathExists(workingDir + "/merge/" + System.currentTimeMillis().toString)) {
       Thread.sleep(5)
     }
-    val filename = path + "merge/" + System.currentTimeMillis().toString
+    val filename = workingDir + "/merge/" + System.currentTimeMillis().toString
 
     val writer = new DataOutputStream(new FileOutputStream(filename))
 
 
     while (first.position() < first.capacity() || second.position() < second.capacity()) {
       if (first.position() >= first.capacity() && second.position() < second.capacity()) {
-        val index = second.getInt()
-        val offset = second.getLong()
+        val index = second.getInt
+        val offset = second.getLong
         writer.writeInt(index)
         writer.writeLong(offset)
       } else if (second.position() >= second.capacity() && first.position() < first.capacity()) {
-        val index = first.getInt()
-        val offset = first.getLong()
+        val index = first.getInt
+        val offset = first.getLong
         writer.writeInt(index)
         writer.writeLong(offset)
       } else {
         val firstPos = first.position()
         val secondPos = second.position()
-        val firstIndex = first.getInt()
-        val secondIndex = second.getInt()
+        val firstIndex = first.getInt
+        val secondIndex = second.getInt
         if (firstIndex <= secondIndex) {
-          val offset = first.getLong()
+          val offset = first.getLong
           writer.writeInt(firstIndex)
           writer.writeLong(offset)
           second.position(secondPos)
         } else {
-          val offset = second.getLong()
+          val offset = second.getLong
           writer.writeInt(secondIndex)
           writer.writeLong(offset)
           first.position(firstPos)
@@ -81,10 +85,9 @@ object FileIndex {
   }
 
   def merge(index: MappedByteBuffer, start: Int, end: Int, path: String): String = {
-    val end = index.capacity() / 12
-    if (end <= 100000) {
-      val entries = (for (i <- 1 to end) yield
-        new Entry(index.getInt((start + i) * 12), index.getLong((start + i) * 12 + 4))).sortBy(x => x.hash)
+    if ((end - start) <= 500000) {
+      val entries = (for (i <- start to end - 1) yield
+        new Entry(index.getInt(i * 12), index.getLong(i * 12 + 4))).sortBy(x => x.hash)
       if (pathExists(path + "merge/" + System.currentTimeMillis().toString)) {
         Thread.sleep(5)
       }
@@ -98,9 +101,9 @@ object FileIndex {
       writer.close()
       filename
     } else {
-      val mid = end / 2
-      val left = merge(index, 0, mid, path)
-      val right = merge(index, mid + 1, end, path)
+      val mid: Int = (start + end) / 2
+      val left = merge(index, start, mid, path)
+      val right = merge(index, mid, end, path)
       val mergeFile = merge(left, right, path)
       removeFile(left)
       removeFile(right)
@@ -150,7 +153,10 @@ object FileIndex {
       writer.flush()
       writer.close()
     }
-    sort(filename)
+    val res = sort(filename)
+    removeFolder(indexSortDir + "merge/")
+    removeFolder(indexSortDir)
+    res
   }
 
   def index(filename: String): MappedByteBuffer = {
