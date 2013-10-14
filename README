@@ -39,10 +39,23 @@ sorted by key keyLenKeyfileIdOffset array of bytes on disk
 merge databases:
 db1 & db2: all operations in db1 < operations in db2
 db should be keyLenKeyStatus(if status not removed =>  valueLenkeyvalue,else key)   sorted by key
-than we merge db1 and db2 to new file
+then we merge db1 and db2 to new file
 
 1) merge sort of indexes, prior to db2
 2) create new file for dbMerge
+
+
+--
+Merge files policy
+we don't want a lot of files, because index search degradation, so:
+1) storage don't do anything, expect update list of db files and index
+2)  node ask storage about current fileList length and if length > n (10), then merge 2 oldest files (time1, time2) in other thread
+after merging and indexing this file, we add to db dir new file with name time2 + 1 (all file names — time of damp,
+our storage not so fast to create file every millisecond, so time2 + 1 ≠ name of next file.
+after replacing, send to node message about it with new files descriptors
+3) node get message, says to storage to remove oldest files and add new instead.
+ Then it remove old files and ready to proceed messages again
+
 
 
 
