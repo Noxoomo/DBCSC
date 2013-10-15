@@ -1,6 +1,6 @@
 package server.Nodes
 
-import akka.actor.Actor
+import akka.actor.{Props, Actor}
 import server.Nodes.NodeCommands._
 import server.OnDiskStorage.DiskStorage
 
@@ -9,13 +9,18 @@ import server.OnDiskStorage.DiskStorage
  * Date: 15.10.13
  * Time: 8:29
  */
-class Merger extends Actor {
+class Merger(val storage: DiskStorage) extends Actor {
   def receive: Actor.Receive = {
-    case Merge(n, storage: DiskStorage) => {
+    case Merge(n) => {
       val (descriptors, toRemove) = storage.mergeLast(n)
       sender ! Merged(descriptors, toRemove)
     }
+    case _ =>
   }
+}
+
+object Merger {
+  def props(storage: DiskStorage): Props = Props(classOf[Merger], storage)
 }
 
 

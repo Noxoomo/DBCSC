@@ -6,8 +6,6 @@ import scala.util.Random
 import server.OnDiskStorage.DiskStorage
 import server.OnDiskStorage.DiskStatus.{NothingFound, Value}
 import server.Nodes.NodeCommands.{Merge, Merged, NodeMessages}
-import java.io.{File, RandomAccessFile}
-import java.nio.MappedByteBuffer
 
 
 /**
@@ -20,16 +18,19 @@ class Node(private val nodeName: String) extends Actor {
   private val dbPath = if (nodeName.endsWith("/")) nodeName else nodeName + "/"
   private val storage = new DiskStorage(dbPath)
   private val rand = new Random()
-  private val merger = context.actorOf(Props(classOf[Merger], "merger"))
+  private val merger = context.actorOf(Merger.props(storage))
   private var collecting: Boolean = false
-  private val maxFiles = 8
+  private val maxFiles = 2
 
   override def receive = {
     case "ping" => sender ! "ping"
     case query: Commands => {
       if (storage.count > maxFiles) {
-        collecting = true
-        merger ! Merge(storage.count, storage)
+        if (!collecting) {
+          collecting = true
+          merger ! Merge(storage.count)
+        }
+
       }
       query match {
         case Get(key, id) => {
@@ -57,14 +58,14 @@ class Node(private val nodeName: String) extends Actor {
         }
         case GC() => {
           collecting = true
-          merger ! Merge(storage.count, storage)
+          merger ! Merge(storage.count)
         }
         case _ => sender ! "unknown command"
       }
     }
     case info: NodeMessages => {
       info match {
-        case Merged(descriptors: (RandomAccessFile, MappedByteBuffer), old: (Array[File], Array[File])) => {
+        case Merged(descriptors, old) => {
           storage.replaceLast(descriptors, old)
           collecting = false
         }

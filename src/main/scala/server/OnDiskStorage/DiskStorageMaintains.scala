@@ -87,14 +87,14 @@ class DiskStorageMaintains(dbPath: String) {
     } else (null, null)
   }
 
-  def garbageCollect(n: Int, bigIndex: Boolean = true): ((RandomAccessFile, MappedByteBuffer), (Array[File], Array[File])) = {
+  def garbageCollect(n: Int): ((RandomAccessFile, MappedByteBuffer), (Array[File], Array[File])) = {
     val oldFiles = getFileList.slice(0, n)
     val oldIndex = getOldIndexList.sortBy(x => x.getName.replace(".index", "").toLong).slice(0, n)
     if (oldFiles.length > 0) {
       val filename = merge(oldFiles)
-      val newName = (oldFiles(n - 1).getName.toInt + 1).toString
+      val newName = database + (oldFiles(n - 1).getName.toLong + 1).toString
       renameFile(filename, newName)
-      val indexBuffer = if (bigIndex) FileIndex.indexBigFiles(newName) else FileIndex.index(newName)
+      val indexBuffer = FileIndex.indexBigFiles(newName)
       val randAccessFile = new RandomAccessFile(newName, "r")
       ((randAccessFile, indexBuffer), (oldFiles, oldIndex))
     } else (null, null)
