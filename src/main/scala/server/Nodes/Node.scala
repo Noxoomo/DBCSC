@@ -5,6 +5,9 @@ import client.Messages._
 import scala.util.Random
 import server.OnDiskStorage.DiskStorage
 import server.OnDiskStorage.DiskStatus.{NothingFound, Value}
+import server.Nodes.NodeCommands.{Merged, NodeMessages}
+import java.io.{File, RandomAccessFile}
+import java.nio.MappedByteBuffer
 
 
 /**
@@ -47,6 +50,13 @@ class Node(private val nodeName: String) extends Actor {
           sender ! GetClose()
         }
         case _ => sender ! "unknown command"
+      }
+    }
+    case info: NodeMessages => {
+      info match {
+        case Merged(descriptors: (RandomAccessFile, MappedByteBuffer), old: (Array[File], Array[File])) => {
+
+        }
       }
     }
     case _ => sender ! Error("unknown command", -1)

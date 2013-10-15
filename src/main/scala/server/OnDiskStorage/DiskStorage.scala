@@ -6,6 +6,11 @@ import java.io._
 import Utils.FileUtils._
 import java.nio.MappedByteBuffer
 import server.OnDiskStorage.DiskStatus._
+import server.OnDiskStorage.DiskStatus.NothingFound
+import server.OnDiskStorage.DiskStatus.FoundValue
+import server.OnDiskStorage.DiskStatus.NoKeyFound
+import server.OnDiskStorage.DiskStatus.WasRemoved
+import server.OnDiskStorage.DiskStatus.Value
 
 /**
  * Database Storage Format:
@@ -33,6 +38,34 @@ class DiskStorage(dbPath: String) {
   //all good, start storage
 
   private var commits = new CommitLog(dbPath)
+
+  /**
+   *
+   * @param n
+   */
+  private def dropLast(n: Int) = {
+    val (dbfiles, toRemove) = files.splitAt(files.length - n)
+    val (dbIndex, indexToRemove) = index.splitAt(index.length - n)
+    files = dbfiles
+    index = dbIndex
+    for (file <- toRemove) file.close()
+  }
+
+  private def addLast(dbFile: RandomAccessFile, fileIndex: MappedByteBuffer) = {
+    files = files ::: List(dbFile)
+    index = index ::: List(fileIndex)
+  }
+
+  def mergeLast(n: Int): ((RandomAccessFile, MappedByteBuffer), (Array[File], Array[File])) = {
+    maintainer.garbageCollect(n)
+  }
+
+  def replaceLast(descriptors: (RandomAccessFile, MappedByteBuffer), old: (Array[File], Array[File])) = {
+    dropLast(old._1.length)
+    addLast(descriptors._1, descriptors._2)
+    maintainer.removeOld(old._1, old._2)
+  }
+
 
   def flush() {
     val filename = maintainer.flush(memory)
