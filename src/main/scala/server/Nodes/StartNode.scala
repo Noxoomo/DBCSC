@@ -26,7 +26,7 @@ object StartNode extends App {
   val akkaConf = System.getProperty("user.dir") + "/" + nodeName + "akka"
   val customConf = ConfigFactory.parseString(Source.fromFile(akkaConf).mkString)
   val system = ActorSystem("Node", ConfigFactory.load(customConf))
-  val node = system.actorOf(Node.props(nodeName), "Storage")
+  val node = system.actorOf(Node.props(nodeName, 8), "Storage")
   Iterator.continually(Console.readLine()).filter(_ != null).takeWhile(_ != "quit").foreach(node ! _)
   system.shutdown()
 

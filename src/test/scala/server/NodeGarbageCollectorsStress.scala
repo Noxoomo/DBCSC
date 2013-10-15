@@ -32,7 +32,7 @@ class NodeGarbageCollectorsStress extends FlatSpec with Matchers {
     val value = new BufferedReader(new FileReader(valuePath + "testline")).readLine()
     val timeout = Timeout(25000)
     val system = ActorSystem("NodeTest")
-    val node = system.actorOf(server.Nodes.Node.props(path))
+    val node = system.actorOf(server.Nodes.Node.props(path, 2))
 
     //val testLimit = 1000000
     val testLimit = 1000000
@@ -47,7 +47,8 @@ class NodeGarbageCollectorsStress extends FlatSpec with Matchers {
       val result = Await.result(future, timeout.duration)
       result should be(Removed(true, i))
     }
-    Thread.sleep(1000)
+    //wait for some garbage collection
+    Thread.sleep(60000)
 
     for (i <- 0 to testLimit) {
       val futureGet = node.ask(Get(i.toString, i))(5 seconds)

@@ -42,7 +42,12 @@ class Router(nodesInfo: Array[String]) extends Actor {
         val node = getNodes(key)
         node ! Update(key, value, id)
       }
+      case GC() => {
+        for (node <- nodes) node ! GC()
+      }
+      case Flush() => for (node <- nodes) node ! Flush()
     }
+
     case response: Response => context.parent ! response
     case _ => sender ! Error("unknown command", -1)
   }

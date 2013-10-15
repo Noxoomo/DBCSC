@@ -23,6 +23,8 @@ object Messages {
 
   case class GC() extends Commands
 
+  case class Flush() extends Commands
+
   abstract class Response()
 
   case class Removed(done: Boolean, id: Long) extends Response

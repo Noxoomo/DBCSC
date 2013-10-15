@@ -70,12 +70,14 @@ class DiskStorage(dbPath: String) {
 
 
   def flush() {
-    val filename = maintainer.flush(memory)
-    index = FileIndex.index(filename) :: index
-    files = new RandomAccessFile(filename, "r") :: files
-    memory.clear()
-    commits.close()
-    commits = new CommitLog(dbPath)
+    if (!memory.getData.isEmpty) {
+      val filename = maintainer.flush(memory)
+      index = FileIndex.index(filename) :: index
+      files = new RandomAccessFile(filename, "r") :: files
+      memory.clear()
+      commits.close()
+      commits = new CommitLog(dbPath)
+    }
   }
 
 

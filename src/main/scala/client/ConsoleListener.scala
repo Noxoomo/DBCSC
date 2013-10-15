@@ -40,6 +40,8 @@ class ConsoleListener(nodes: Array[String]) extends Actor {
     case ConsoleMessage(msg, id) => {
       val request = msg.split(" ", 2)
       request(0) match {
+        case "purge" => router ! GC()
+        case "flush" => router ! Flush()
         case "ping" => println("ping test"); router ! "ping"
         case "get" => {
           router ! Get(request(1), id)

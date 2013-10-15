@@ -14,13 +14,12 @@ import server.Nodes.NodeCommands.{Merge, Merged, NodeMessages}
  * Time: 8:38
  */
 //node name = path to node working filename
-class Node(private val nodeName: String) extends Actor {
+class Node(private val nodeName: String, private val maxFiles: Int = 8) extends Actor {
   private val dbPath = if (nodeName.endsWith("/")) nodeName else nodeName + "/"
   private val storage = new DiskStorage(dbPath)
   private val rand = new Random()
   private val merger = context.actorOf(Merger.props(storage))
   private var collecting: Boolean = false
-  private val maxFiles = 2
 
   override def receive = {
     case "ping" => sender ! "ping"
@@ -57,8 +56,14 @@ class Node(private val nodeName: String) extends Actor {
           sender ! GetClose()
         }
         case GC() => {
-          collecting = true
-          merger ! Merge(storage.count)
+          if (!collecting)
+            if (storage.count > 1) {
+              collecting = true
+              merger ! Merge(storage.count)
+            }
+        }
+        case Flush() => {
+          storage.flush()
         }
         case _ => sender ! "unknown command"
       }
@@ -83,5 +88,6 @@ class Node(private val nodeName: String) extends Actor {
 }
 
 object Node {
-  def props(nodeName: String): Props = Props(classOf[Node], nodeName)
+  //  def props(nodeName: String): Props = Props(classOf[Node], nodeName)
+  def props(nodeName: String, maxFiles: Int = 8): Props = Props(classOf[Node], nodeName, maxFiles)
 }

@@ -29,7 +29,7 @@ class NodesTest extends FlatSpec with Matchers {
     createFolder(path + "db")
     copyFile(path + "test.db", path + "db/" + System.currentTimeMillis().toString)
     val system = ActorSystem("NodeTest")
-    val node = system.actorOf(server.Nodes.Node.props(path))
+    val node = system.actorOf(server.Nodes.Node.props(path, 8))
 
     //key1
     val future1 = node.ask(Get("key1", 1))(5 seconds)
@@ -61,7 +61,7 @@ class NodesTest extends FlatSpec with Matchers {
     val valuePre = "some value "
     val timeout = Timeout(5000)
     val system = ActorSystem("NodeTest")
-    val node = system.actorOf(server.Nodes.Node.props(path))
+    val node = system.actorOf(server.Nodes.Node.props(path, 8))
 
     //val testLimit = 1000000
     val testLimit = 1000000

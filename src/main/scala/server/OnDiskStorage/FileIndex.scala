@@ -209,7 +209,7 @@ object FileIndex {
 
       def binarySearch(left: Int, right: Int): Int = {
         if (right - left <= 1) {
-          if (right == end) -1
+          if (right == end) if (left == 0 && bytes.getInt(0) == hash) 0 else -1
           else if (bytes.getInt(left * blockSize) == hash) {
             left
           } else right

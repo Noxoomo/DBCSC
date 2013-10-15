@@ -23,7 +23,7 @@ object StartDatabase {
       System.exit(0)
     }
     val system = ActorSystem("Database")
-    val database = system.actorOf(server.Nodes.Node.props(args(0)))
+    val database = system.actorOf(server.Nodes.Node.props(args(0), 2))
     val nodes = Array(database.path.toString)
     var queryId = 0
     val client = system.actorOf(ConsoleListener.props(nodes), "Console")
