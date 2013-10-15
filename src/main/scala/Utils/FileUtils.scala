@@ -37,7 +37,7 @@ object FileUtils {
     Files.createDirectories(Paths.get(folderName))
   }
 
-  def renameFile(from: String, to: String) {
+  def renameFile(from: String, to: String): Boolean = {
     new File(from).renameTo(new File(to))
   }
 

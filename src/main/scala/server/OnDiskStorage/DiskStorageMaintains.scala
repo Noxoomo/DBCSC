@@ -26,20 +26,21 @@ class DiskStorageMaintains(dbPath: String) {
   private def merge(files: Array[File]): String = {
     if (files.length == 1) {
       files(0).getAbsolutePath
-    } else if (files.length == 2) {
-      merge(files(0).getAbsolutePath, files(1).getAbsolutePath)
     } else {
       val mid: Int = files.length / 2
-      val left = merge(files.slice(0, mid))
-      val right = merge(files.slice(mid, files.length))
+      val (leftFiles, rightFiles) = files.splitAt(mid)
+      val left = merge(leftFiles)
+      val right = merge(rightFiles)
       val result = merge(left, right)
-      removeFile(left)
-      removeFile(right)
+
+      if (leftFiles.length > 1) removeFile(left) else if (leftFiles(0).getAbsolutePath.contains("merge")) removeFile(left)
+      if (rightFiles.length > 1) removeFile(right) else if (rightFiles(0).getAbsolutePath.contains("merge")) removeFile(right)
       result
     }
   }
 
   def flush(memory: Memory): String = {
+    if (pathExists(database + System.currentTimeMillis().toString)) Thread.sleep(5)
     val filename = database + System.currentTimeMillis().toString
     val keys = memory.getData.keySet.union(memory.getRemoved).toArray.sorted
     if (keys.length > 0) {
@@ -93,7 +94,12 @@ class DiskStorageMaintains(dbPath: String) {
     if (oldFiles.length > 0) {
       val filename = merge(oldFiles)
       val newName = database + (oldFiles(n - 1).getName.toLong + 1).toString
-      renameFile(filename, newName)
+      if (!renameFile(filename, newName)) {
+        print("aaaaa")
+      }
+      if (!pathExists(newName)) {
+        print("bbbb")
+      }
       val indexBuffer = FileIndex.indexBigFiles(newName)
       val randAccessFile = new RandomAccessFile(newName, "r")
       ((randAccessFile, indexBuffer), (oldFiles, oldIndex))
@@ -114,7 +120,9 @@ class DiskStorageMaintains(dbPath: String) {
     //first should be created before second
     val firstReader = new Reader(first)
     val secondReader = new Reader(second)
+    if (pathExists(dbPath + "merge/" + System.currentTimeMillis().toString)) Thread.sleep(5)
     val filename = dbPath + "merge/" + System.currentTimeMillis().toString
+
     val writer = new DataOutputStream(new FileOutputStream(filename))
 
     firstReader.next()
