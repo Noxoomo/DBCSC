@@ -78,6 +78,7 @@ class DiskStorageMaintains(dbPath: String) {
     val oldIndex = getOldIndexList
     if (oldFiles.length > 0) {
       val filename = merge(oldFiles)
+      if (pathExists(database + System.currentTimeMillis())) Thread.sleep(5)
       val newName = database + System.currentTimeMillis()
       renameFile(filename, newName)
       removeOld(oldFiles, oldIndex)
@@ -95,10 +96,12 @@ class DiskStorageMaintains(dbPath: String) {
       val filename = merge(oldFiles)
       val newName = database + (oldFiles(n - 1).getName.toLong + 1).toString
       if (!renameFile(filename, newName)) {
-        print("aaaaa")
+        System.err.println("can't rename file, something went wrong")
+        System.exit(1)
       }
       if (!pathExists(newName)) {
-        print("bbbb")
+        System.err.println("Can't find created file, something went wrong")
+        System.exit(1)
       }
       val indexBuffer = FileIndex.indexBigFiles(newName)
       val randAccessFile = new RandomAccessFile(newName, "r")

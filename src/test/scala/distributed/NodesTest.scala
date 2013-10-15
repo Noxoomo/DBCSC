@@ -64,7 +64,7 @@ class NodesTest extends FlatSpec with Matchers {
     val node = system.actorOf(server.Nodes.Node.props(path, 8))
 
     //val testLimit = 1000000
-    val testLimit = 1000000
+    val testLimit = 100000
     for (i <- 0 to testLimit) {
       val future = node.ask(Insert(keyPre + i.toString, valuePre + i.toString, i))(5 seconds)
       val result = Await.result(future, timeout.duration)

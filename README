@@ -1,3 +1,9 @@
+---
+Running test — to run test with sbt:
+ SBT_OPTS="-Xms512M -Xmx1024M -Xss1M -XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=256M" sbt test
+
+Without -Xmx1g some tests could fail
+
 ----
 Run:
 after sbt compile and creation of one-jar for server
