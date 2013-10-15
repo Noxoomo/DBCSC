@@ -21,6 +21,8 @@ object Messages {
 
   case class Remove(key: String, id: Long) extends Commands
 
+  case class GC() extends Commands
+
   abstract class Response()
 
   case class Removed(done: Boolean, id: Long) extends Response

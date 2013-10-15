@@ -1,6 +1,6 @@
 package server.Nodes
 
-import server.OnDiskStorage.DiskStorageMaintains
+import server.OnDiskStorage.DiskStorage
 import java.io.{File, RandomAccessFile}
 import java.nio.MappedByteBuffer
 
@@ -13,7 +13,7 @@ object NodeCommands {
 
   abstract class NodeMessages()
 
-  case class Merge(n: Int, maintainer: DiskStorageMaintains);
+  case class Merge(n: Int, storage: DiskStorage);
 
   case class Merged(descriptors: (RandomAccessFile, MappedByteBuffer), old: (Array[File], Array[File]))
 

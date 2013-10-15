@@ -66,6 +66,8 @@ class DiskStorage(dbPath: String) {
     maintainer.removeOld(old._1, old._2)
   }
 
+  def count = files.length
+
 
   def flush() {
     val filename = maintainer.flush(memory)
